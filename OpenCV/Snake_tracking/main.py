@@ -15,30 +15,27 @@ wincap = WindowCapture('Snake++')
 # initialize the Vision class
 vision_snake = Vision('snake_part.png')
 
-'''
-# https://www.crazygames.com/game/guns-and-bottle
-wincap = WindowCapture()
-vision_gunsnbottle = Vision('gunsnbottle.jpg')
-'''
+old_screenshot = wincap.get_screenshot()
 
 loop_time = time()
 while(True):
 
-    # get an updated image of the game
+    
     screenshot = wincap.get_screenshot()
 
-    # display the processed image
+    
     points = vision_snake.find(screenshot, 0.8, 'rectangles')
-    #points = vision_gunsnbottle.find(screenshot, 0.7, 'points')
-
-    # debug the loop rate
+   
+    #difference = vision_snake.diffrerences(old_screenshot, screenshot)
+    
     #print('FPS {}'.format(1 / (time() - loop_time)))
     loop_time = time()
 
-    # press 'q' with the output window focused to exit.
-    # waits 1 ms every loop to process key presses
+    
     if cv.waitKey(1) == ord('q'):
         cv.destroyAllWindows()
         break
+
+    old_screenshot = screenshot
 
 print('Done.')
