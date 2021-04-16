@@ -17,6 +17,7 @@ class Vision:
 
         self.last_rectangles = None
         self.new_rectangles = []
+        self.old_head_pos = [0, 0, 0, 0]
         self.food = None
 
         self.needle_w = self.needle_img.shape[1]
@@ -119,7 +120,7 @@ class Vision:
                     if np.any(identisches_eck) == False and np.any(close) == False:
                         #print('neues Rechteck', rect)
                         self.new_rectangles.append(rect)
-                #print(self.new_rectangles)
+                
 
                 #food finden
 
@@ -131,7 +132,37 @@ class Vision:
                         self.food = rect
                         #print('Food', self.food)
                         break
-                              
+
+                if len(self.new_rectangles) > 1:     
+                    #print(self.new_rectangles)   
+                    row = np.where((self.new_rectangles == self.food).all(axis = 1))
+                    #print('row', row)
+                    np.delete(self.new_rectangles, row,  axis = 0)   
+
+                #richtung finden
+
+                new_head_pos = np.array(self.new_rectangles)
+                #print('newhead', new_head_pos)
+                #print('oldhead', self.old_head_pos)
+                direction = new_head_pos - self.old_head_pos
+                #print('richtung', direction)
+                self.old_head_pos = new_head_pos 
+
+                direction_list = direction.tolist()
+                direction_list = direction_list
+                #print('richtungsliste', direction_list)
+                if direction_list[0][0] > 0:
+                    richtung = 'x'
+                elif direction_list[0][0] < 0:
+                    richtung = '-x'
+                elif direction_list[0][1] > 0:
+                    richtung = 'y'
+                elif direction_list[0][1] < 0:
+                    richtung = '-y'
+                print(richtung)
+
+
+
             except Exception as e: print(e)
 
 
