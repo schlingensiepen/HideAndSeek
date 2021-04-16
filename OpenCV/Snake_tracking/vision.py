@@ -17,6 +17,7 @@ class Vision:
 
         self.last_rectangles = None
         self.new_rectangles = []
+        self.food = None
 
         self.needle_w = self.needle_img.shape[1]
         self.needle_h = self.needle_img.shape[0]
@@ -105,21 +106,33 @@ class Vision:
                 #new_rectangles = np.where(rectangles != self.last_rectangles)
                 self.new_rectangles.clear()
                 
+                #kopf finden
+
 
                 for rect in rectangles:
                     #print (rect)
+                    close = np.isclose(self.last_rectangles, rect, atol = 2).all(axis = 1)
+                    
+                    #print("close: ", close)
                     identisches_eck = np.where((self.last_rectangles == rect).all(axis = 1))
                     #print('identisch: ', identisches_eck)
-                    if np.any(identisches_eck) == False:
-                        print('neues Rechteck', rect)
+                    if np.any(identisches_eck) == False and np.any(close) == False:
+                        #print('neues Rechteck', rect)
                         self.new_rectangles.append(rect)
                 print(self.new_rectangles)
+
+                #food finden
+               
+                if np.any(self.new_rectangles[1]):
+
+                    self.food = self.new_rectangles[1]
+                    print('food', self,food)
                               
             except Exception as e: print(e)
 
 
-        else:
-            print("nichts neues")
+        #else:
+            #print("nichts neues")
 
 
         points = []
@@ -129,6 +142,7 @@ class Vision:
             line_color = (0, 255, 0)
             line_type = cv.LINE_4
             marker_color = (255, 0, 255)
+            food_marker_color = (0, 0,255)
             marker_type = cv.MARKER_CROSS
 
             # Loop over all the rectangles
@@ -162,6 +176,20 @@ class Vision:
                     cv.drawMarker(haystack_img, (center_x, center_y), 
                                             color=marker_color, markerType=marker_type, 
                                             markerSize=40, thickness=2)
+        
+        if np.any(self.food) == True:
+            x = self.food[0]
+            y = self.food[1]
+            w = self.food[2]
+            h = self.food[3]
+
+            center_x = x + int(w/2)
+            center_y = y + int(h/2)
+            cv.drawMarker(haystack_img, (center_x, center_y), 
+                                            color=food_marker_color, markerType=marker_type, 
+                                            markerSize=40, thickness=2)
+
+
 
         if debug_mode:
             cv.imshow('Matches', haystack_img)
