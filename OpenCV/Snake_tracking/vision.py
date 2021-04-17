@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import sys, os
 
 
 class Vision:
@@ -17,7 +18,7 @@ class Vision:
 
         self.last_rectangles = None
         self.new_rectangles = []
-        self.old_head_pos = [0, 0, 0, 0]
+        self.old_head_pos = [0, 0]
         self.food = None
 
         self.needle_w = self.needle_img.shape[1]
@@ -27,47 +28,7 @@ class Vision:
         self.method = method
 
 
-    #funktioniert nicht
-    '''
-    def diffrerences(self, old_img, new_img):
-
-        diffs = cv.subtract(old_img, new_img)
-
-        result = not np.any(diffs)
-
-        if result == True:
-            print("Same Imgs")
-        else:
-            print("images are different")
-            locations = np.where(diffs != 0)
-            locations = locations[2:,...]
-            print("locations", locations)
-            locations = list(zip(*locations[::-1]))
-            rectangles = []
-            for loc in locations:
-                rect = [int(loc[0]), int(loc[1]), self.needle_w, self.needle_h]
-                rectangles.append(rect)
-                rectangles.append(rect)
-                rectangles, weights = cv.groupRectangles(rectangles, groupThreshold=1, eps=0.5)
-
-            points = []
-            marker_color = (255, 0, 255)
-            marker_type = cv.MARKER_CROSS
-
-            for (x, y, w, h) in rectangles:
-
-                
-                center_x = x + int(w/2)
-                center_y = y + int(h/2)
-              
-                points.append((center_x, center_y))
-
-                cv.drawMarker(haystack_img, (center_x, center_y), 
-                                color=marker_color, markerType=marker_type, 
-                                markerSize=40, thickness=2)
-    '''
-
-
+  
 
 
     def find(self, haystack_img, threshold=0.5, debug_mode=None):
@@ -82,6 +43,7 @@ class Vision:
 
         # remove overlapping rectangles
         rectangles = []
+        rectangles_stripped = []
         for loc in locations:
             rect = [int(loc[0]), int(loc[1]), self.needle_w, self.needle_h]
             
@@ -91,47 +53,42 @@ class Vision:
         rectangles, weights = cv.groupRectangles(rectangles, groupThreshold=1, eps=0.5)
         #print(rectangles)
 
-        if np.any(rectangles != self.last_rectangles):
+        if len(rectangles):
+            rectangles_stripped = np.delete(rectangles, np.s_[2:5], axis=1)
+            #print('stripped', rectangles_stripped)
+
+        if np.any(rectangles_stripped != self.last_rectangles):
 
             #new_rectangles = np.where rectangles
 
             try:
-                #print('rechtecke', rectangles)
-                #print('letzte_rechtecke', self.last_rectangles)
-
-                #new_rectangles = np.setdiff1d(rectangles, self.last_rectangles)
-                #positions = np.where(rectangles != self.last_rectangles)
-                #print(positions)
-                #print('position', position)
-                #new_rectangles.append(rectangles[position])
-                #new_rectangles = np.where(rectangles != self.last_rectangles)
+               
                 self.new_rectangles.clear()
                 
                 #kopf finden
 
 
-                for rect in rectangles:
-                    #print (rect)
-                    close = np.isclose(self.last_rectangles, rect, atol = 2).all(axis = 1)
-                    
-                    #print("close: ", close)
-                    identisches_eck = np.where((self.last_rectangles == rect).all(axis = 1))
+                for rect in rectangles_stripped:
+                
+                    identisches_eck = np.isclose(self.last_rectangles, rect, atol = 2).all(axis = 1)                       
                     #print('identisch: ', identisches_eck)
-                    if np.any(identisches_eck) == False and np.any(close) == False:
+                    if np.any(identisches_eck) == False:      
                         #print('neues Rechteck', rect)
                         self.new_rectangles.append(rect)
                 
 
                 #food finden
 
-                for rect in rectangles:
-                    near = np.isclose(rectangles, rect, atol = 25).all(axis = 1)
+                for rect in rectangles_stripped:
+                    near = np.isclose(rectangles_stripped, rect, atol = 25).all(axis = 1)
                     near = near.tolist()
                     #print('near', near)
                     if near.count(True) < 2:
                         self.food = rect
                         #print('Food', self.food)
                         break
+
+                #food aus neuen rectangles entfernen  
 
                 if len(self.new_rectangles) > 1:     
                     #print(self.new_rectangles)   
@@ -150,7 +107,7 @@ class Vision:
 
                 direction_list = direction.tolist()
                 direction_list = direction_list
-                #print('richtungsliste', direction_list)
+                
                 if direction_list[0][0] > 0:
                     richtung = 'x'
                 elif direction_list[0][0] < 0:
@@ -159,11 +116,15 @@ class Vision:
                     richtung = 'y'
                 elif direction_list[0][1] < 0:
                     richtung = '-y'
-                print(richtung)
+                #print(richtung)
 
 
 
-            except Exception as e: print(e)
+            except Exception as e:
+                print(e)
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno)
 
 
         #else:
@@ -172,6 +133,8 @@ class Vision:
 
         points = []
         if len(rectangles):
+            w = 20
+            h = 20
             #print('Found needle.')
 
             line_color = (0, 255, 0)
@@ -200,10 +163,10 @@ class Vision:
                     cv.drawMarker(haystack_img, (center_x, center_y), 
                                 color=marker_color, markerType=marker_type, 
                                 markerSize=40, thickness=2)
-         #neue pixel markieren:   
+         #Kopf markieren:   
         if self.new_rectangles:
             if len(self.new_rectangles):                   
-                for (x, y, w, h) in self.new_rectangles:
+                for (x, y) in self.new_rectangles:
                     center_x = x + int(w/2)
                     center_y = y + int(h/2)
 
@@ -215,8 +178,7 @@ class Vision:
             food_marker_color = (0, 0,255)
             x = self.food[0]
             y = self.food[1]
-            w = self.food[2]
-            h = self.food[3]
+
 
             center_x = x + int(w/2)
             center_y = y + int(h/2)
@@ -232,6 +194,6 @@ class Vision:
             #cv.imwrite('result_click_point.jpg', haystack_img)
 
 
-        self.last_rectangles = rectangles
+        self.last_rectangles = rectangles_stripped
 
         return points
