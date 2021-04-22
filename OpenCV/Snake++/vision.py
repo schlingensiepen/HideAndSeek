@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import sys, os
+from itertools import product
 
 
 class Vision:
@@ -19,6 +20,8 @@ class Vision:
         self.last_rectangles = None
         self.new_rectangles = []
         self.old_head_pos = [0, 0]
+        self.new_head_pos = [0, 0]
+        self.vector = []
         self.food = None
 
         self.needle_w = self.needle_img.shape[1]
@@ -86,28 +89,48 @@ class Vision:
                     if near.count(True) < 2:
                         self.food = rect
                         #print('Food', self.food)
+                        
                         break
 
                 #food aus neuen rectangles entfernen  
 
-                if len(self.new_rectangles) > 1:     
-                    #print(self.new_rectangles)   
+                if len(self.new_rectangles) > 1:      
                     row = np.where((self.new_rectangles == self.food).all(axis = 1))
-                    #print('row', row)
                     np.delete(self.new_rectangles, row,  axis = 0)   
+
+                if len(self.new_rectangles):
+                    self.new_head_pos = np.array(self.new_rectangles)
+                 
+
+                #vektor für KI erstellen
+
+                headvector = [0, 0]
+                for i, j in self.new_head_pos:
+                    headvector[0] = (i/20)
+                    headvector[1] = (j/20)
+                
+                headvector = [round(i) for i in headvector]
+                headvector = np.array(headvector)
+                self.vector = headvector
+
+                foodvector = self.food/20
+                foodvector = [round(i) for i in foodvector]
+                foodvector = foodvector - headvector
+                
+                self.vector = np.append(self.vector, foodvector)
+                #print('vector: ', self.vector)
+                
+                score = len(rectangles_stripped) - 1
+                self.vector = np.append(self.vector, score)
+                
 
                 #richtung finden
 
-                new_head_pos = np.array(self.new_rectangles)
-                #print('newhead', new_head_pos)
-                #print('oldhead', self.old_head_pos)
-                direction = new_head_pos - self.old_head_pos
-                #print('richtung', direction)
-                self.old_head_pos = new_head_pos 
-
+                direction = self.new_head_pos - self.old_head_pos   
+                self.old_head_pos = self.new_head_pos
                 direction_list = direction.tolist()
                 direction_list = direction_list
-                
+
                 if direction_list[0][0] > 0:
                     richtung = 'x'
                 elif direction_list[0][0] < 0:
@@ -118,7 +141,7 @@ class Vision:
                     richtung = '-y'
                 #print(richtung)
 
-
+                #print('vector: ', self.vector)
 
             except Exception as e:
                 print(e)
@@ -163,28 +186,28 @@ class Vision:
                     cv.drawMarker(haystack_img, (center_x, center_y), 
                                 color=marker_color, markerType=marker_type, 
                                 markerSize=40, thickness=2)
-         #Kopf markieren:   
-        if self.new_rectangles:
-            if len(self.new_rectangles):                   
-                for (x, y) in self.new_rectangles:
-                    center_x = x + int(w/2)
-                    center_y = y + int(h/2)
+            #Kopf markieren:   
+            if self.new_rectangles:
+                if len(self.new_rectangles):                   
+                    for (x, y) in self.new_rectangles:
+                        center_x = x + int(w/2)
+                        center_y = y + int(h/2)
 
-                    cv.drawMarker(haystack_img, (center_x, center_y), 
-                                            color=marker_color, markerType= cv.MARKER_CROSS, 
-                                            markerSize=40, thickness=2)
-        #food markieren:
-        if np.any(self.food) == True:
-            food_marker_color = (0, 0,255)
-            x = self.food[0]
-            y = self.food[1]
+                        cv.drawMarker(haystack_img, (center_x, center_y), 
+                                                color=marker_color, markerType= cv.MARKER_CROSS, 
+                                                markerSize=40, thickness=2)
+            #food markieren:
+            if np.any(self.food) == True:
+                food_marker_color = (0, 0,255)
+                x = self.food[0]
+                y = self.food[1]
 
 
-            center_x = x + int(w/2)
-            center_y = y + int(h/2)
-            cv.drawMarker(haystack_img, (center_x, center_y), 
-                                            color=food_marker_color, markerType = cv.MARKER_CROSS, 
-                                            markerSize=40, thickness=2)
+                center_x = x + int(w/2)
+                center_y = y + int(h/2)
+                cv.drawMarker(haystack_img, (center_x, center_y), 
+                                                color=food_marker_color, markerType = cv.MARKER_CROSS, 
+                                                markerSize=40, thickness=2)
 
 
 
@@ -196,4 +219,4 @@ class Vision:
 
         self.last_rectangles = rectangles_stripped
 
-        return points
+        return self.vector

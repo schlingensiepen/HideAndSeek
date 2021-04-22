@@ -24,11 +24,12 @@ while(True):
     screenshot = wincap.get_screenshot()
 
     
-    points = vision_snake.find(screenshot, 0.8, 'rectangles')
+    vector = vision_snake.find(screenshot, 0.8, 'rectangles')
+    print(vector)
    
-    #difference = vision_snake.diffrerences(old_screenshot, screenshot)
     
-    print('FPS {}'.format(1 / (time() - loop_time)))
+    
+    #print('FPS {}'.format(1 / (time() - loop_time)))
     loop_time = time()
 
     
