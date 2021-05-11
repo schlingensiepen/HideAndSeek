@@ -4,7 +4,7 @@ def main():
     import time
     from multiprocessing import Process
 
-    desired_inscances = 2
+    desired_inscances = 3
     instance = 0
     objects = {}
     processes = {}
