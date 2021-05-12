@@ -16,6 +16,7 @@ FPS = 10000
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
+
 wSeeker = None
 wHider = None
 train = 0 # 0 für Seeker 1 für Hider
@@ -26,8 +27,11 @@ HITMASKS = {}
 obstacles_sympy = []
 obstacles = []
 
+# spieler können selbst gesteuert werden
 debug_mode = False
+# es wird angzeigt, was passiert
 graphical_mode = False
+
 
 red = (213, 50, 80)
 green = (0, 255, 0)
@@ -74,8 +78,6 @@ def move(character):
     '''
     return newx, newy
 
-
-
 def main(genomes, config):
     score = loopIter = 0
 
@@ -107,7 +109,7 @@ def main(genomes, config):
 
     if train == 1:
         for i in range(1):
-            seeker = Seeker(400, 400, IMAGES['hider'])
+            seeker = Seeker(400, 400)
             seekers.append(seeker)
 
     for i in range(0):
@@ -341,6 +343,172 @@ def main(genomes, config):
             if graphical_mode:
                 FPSCLOCK.tick(FPS)
 
+def visResult():
+    score = loopIter = 0
+
+    global SCREEN, FPSCLOCK
+
+    pygame.init()
+    FPSCLOCK = pygame.time.Clock()
+    SCREEN = pygame.display.set_mode((int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
+    pygame.display.set_caption('Hide and Seek')
+
+    IMAGES['background'] = pygame.image.load('sprites/bg.png').convert_alpha()
+    IMAGES['hider'] = pygame.image.load('sprites/hider.png').convert_alpha()
+    IMAGES['seeker'] = pygame.image.load('sprites/seeker.png').convert_alpha()
+    IMAGES['object'] = pygame.image.load('sprites/object.png').convert_alpha()
+
+    surface = pygame.Surface((SCREENWIDTH, SCREENHEIGHT))
+    surface.blit(IMAGES['background'], (0, 0))
+
+    hiders = []
+    seekers = []
+
+    for i in range(1):
+        hider = Hider(60, 60)
+        hiders.append(hider)
+
+    for i in range(1):
+        seeker = Seeker(400, 400)
+        seekers.append(seeker)
+
+    for i in range(0):
+        obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width),
+                       np.random.randint(0, SCREENHEIGHT - Obstacle.height))
+        obstacles.append(obs)
+        sympobs = obs.sympy_obstacle(obs)
+        obstacles_sympy.append(sympobs)
+
+
+    run = True
+    while run:
+
+        seeker = seekers[0]
+        hider = hiders[0]
+
+        for event in pygame.event.get():
+            if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                pygame.quit()
+                run = False
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+
+        # see hiders
+        see = False
+        nextHiderX = -1
+        nextHiderY = -1
+        minDis = 100000
+        status = seeker.seeHider(hiders, obstacles_sympy)
+        for i in status:
+            if i[1] == 0:
+                if i[2] < minDis:
+                    minDis = i[2]
+                    a = i[0]
+                    nextHiderY = hiders[a].y
+                    nextHiderX = hiders[a].x
+                # see
+                see = green
+                run = False
+            elif i[1] == 1:
+                if i[2] < minDis:
+                    minDis = i[2]
+                    a = i[0]
+                    nextHiderY = hiders[a].y
+                    nextHiderX = hiders[a].x
+                # see semi
+                see = yellow
+
+            elif i[1] == 2:
+                if i[2] < minDis:
+                    minDis = i[2]
+                    a = i[0]
+                    nextHiderY = -1
+                    nextHiderX = -1
+                # no see
+                see = red
+
+        # outputs generieren
+        outputHider = wHider.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+        outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+
+        # move hider
+        if debug_mode:
+            if keys[pygame.K_UP]:
+                hider.x, hider.y = move(hider)
+        else:
+            hider.x, hider.y = move(hider)
+        if keys[pygame.K_LEFT] or outputHider[0] > 0.5:
+            hider.angle = hider.angle + hider.rotVel
+        if keys[pygame.K_RIGHT] or outputHider[1] > 0.5:
+            hider.angle = hider.angle - hider.rotVel
+        if hider.angle >= 360:
+            hider.angle -= 360
+        if hider.angle <= 0:
+            hider.angle += 360
+
+        # move seeker
+        if not debug_mode:
+            nSeekerx, nSeekery = move(seeker)
+            if nSeekerx == seeker.x and nSeekery == seeker.y:
+                ge[x].fitness -= 1000
+                run = False
+            seeker.x = nSeekerx
+            seeker.y = nSeekery
+        else:
+            if keys[pygame.K_w]:
+                seeker.x, seeker.y = move(seeker)
+        if keys[pygame.K_a] or outputSeeker[0] > 0.5:
+            seeker.angle = seeker.angle + seeker.rotVel
+        if keys[pygame.K_d] or outputSeeker[1] > 0.5:
+            seeker.angle = seeker.angle - seeker.rotVel
+        if seeker.angle >= 360:
+            seeker.angle -= 360
+        if seeker.angle <= 0:
+            seeker.angle += 360
+
+        # draw sprites
+        surfaceScaled = pygame.transform.scale(surface,
+                                               (int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
+        SCREEN.blit(surfaceScaled, (0, 0))
+
+        # for object in objects:
+        #    surface.blit(IMAGES['object'], (object.x, object.y))
+
+        # hider
+
+        hider.playerSurface = pygame.transform.rotate(IMAGES['hider'], hider.angle)
+
+        for hider in hiders:
+            # surface.blit(hider.playerSurface, (hider.x, hider.y))
+            pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
+            newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
+            newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
+            pygame.draw.circle(SCREEN, white, [newx, newy], 5)
+
+        # seeker
+
+        seeker.playerSurface = pygame.transform.rotate(IMAGES['seeker'], seeker.angle)
+
+        # surface.blit(seeker.playerSurface, (seeker.x, seeker.y))
+        pygame.draw.circle(SCREEN, red, [seeker.x, seeker.y], seeker.radius)
+        newx = seeker.x - np.sin(np.deg2rad(seeker.angle)) * seeker.radius
+        newy = seeker.y - np.cos(np.deg2rad(seeker.angle)) * seeker.radius
+        pygame.draw.circle(SCREEN, white, [newx, newy], 5)
+
+        # sight visualsisazion
+
+        pygame.draw.line(SCREEN, see, [seeker.x, seeker.y], [hider.x, hider.y], 2)
+
+        for obstacle in obstacles:
+            pygame.draw.rect(SCREEN, black, [obstacle.x, obstacle.y, obstacle.width, obstacle.height])
+
+        pygame.display.update()
+
+        loopIter += 1
+        # print(ge[x].fitness)
+
+        FPSCLOCK.tick(FPS)
 
 def getHitmask(image):
     """returns a hitmask using an image's alpha."""
@@ -353,6 +521,8 @@ def getHitmask(image):
 
 
 def run(configHider, configSeeker):
+    global wSeeker
+    global wHider
 
     #train Seeker
     train = 0
@@ -366,7 +536,7 @@ def run(configHider, configSeeker):
     statsS = neat.StatisticsReporter()
     pS.add_reporter(statsS)
 
-    winnerSeeker = pS.run(main, 200)
+    winnerSeeker = pS.run(main, 100)
     wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
     #train Hider
@@ -381,10 +551,10 @@ def run(configHider, configSeeker):
     statsH = neat.StatisticsReporter()
     pH.add_reporter(statsH)
 
-    winnerHider = pH.run(main, 200)
+    winnerHider = pH.run(main, 100)
     wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
 
-
+    visResult()
 
 
 if __name__ == '__main__':
