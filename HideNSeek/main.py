@@ -522,37 +522,37 @@ def run(configHider, configSeeker):
     global wHider
     global graphical_mode
     global train
+    for i in range(100):
+        # train Seeker
+        train = 0
+        configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configSeeker)
 
-    # train Seeker
-    train = 0
-    configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                 configSeeker)
+        pS = neat.Population(configS)
 
-    pS = neat.Population(configS)
+        pS.add_reporter(neat.StdOutReporter(True))
+        statsS = neat.StatisticsReporter()
+        pS.add_reporter(statsS)
 
-    pS.add_reporter(neat.StdOutReporter(True))
-    statsS = neat.StatisticsReporter()
-    pS.add_reporter(statsS)
+        winnerSeeker = pS.run(main, 1)
+        wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
-    winnerSeeker = pS.run(main, 100)
-    wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
+        # train Hider
+        #graphical_mode = True
+        train = 1
+        configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configHider)
 
-    # train Hider
-    graphical_mode = True
-    train = 1
-    configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                 configHider)
+        pH = neat.Population(configH)
 
-    pH = neat.Population(configH)
+        pH.add_reporter(neat.StdOutReporter(True))
+        statsH = neat.StatisticsReporter()
+        pH.add_reporter(statsH)
 
-    pH.add_reporter(neat.StdOutReporter(True))
-    statsH = neat.StatisticsReporter()
-    pH.add_reporter(statsH)
-
-    winnerHider = pH.run(main, 1000)
-    wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+        winnerHider = pH.run(main, 1)
+        wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
 
     input("Press Enter to continue...")
 
