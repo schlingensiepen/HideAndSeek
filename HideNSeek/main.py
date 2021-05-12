@@ -16,6 +16,9 @@ FPS = 10000
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
+wSeeker = None
+wHider = None
+train = 0 # 0 für Seeker 1 für Hider
 
 IMAGES = {}
 HITMASKS = {}
@@ -24,7 +27,7 @@ obstacles_sympy = []
 obstacles = []
 
 debug_mode = False
-graphical_mode = True
+graphical_mode = False
 
 red = (213, 50, 80)
 green = (0, 255, 0)
@@ -37,7 +40,6 @@ def move(character):
 
     newx = int(character.x - np.sin(np.deg2rad(character.angle)) * character.vel)
     newy = int(character.y - np.cos(np.deg2rad(character.angle)) * character.vel)
-    print(newx, newy)
     radius = character.radius
 
     #check screen borders   
@@ -48,21 +50,17 @@ def move(character):
     for obs in obstacles:
         #links
         if obs.x <= newx + character.radius <= obs.x + obs.width and obs.y <= newy <= obs.y + obs.height:
-            print('links')
             return character.x, character.y
         #rechts
         if obs.x + obs.width >= newx - character.radius >= obs.x and obs.y <= newy <= obs.y + obs.height:
-            print('rechts')
             return character.x, character.y
             
         #oben
         if obs.y <= newy + character.radius <= obs.y + obs.height and obs.x <= newx <= obs.x + obs.width:
-            print('oben')
             return character.x, character.y
             
         #unten
         if obs.y  + obs.height >= newy - character.radius >= obs.y and obs.x <= newx <= obs.x + obs.width:
-            print('unten')
             return character.x, character.y
             
 
@@ -102,13 +100,15 @@ def main(genomes, config):
     hiders = []
     seekers = []
 
-    for i in range(1):
-        hider = Hider(60, 60)
-        hiders.append(hider)
+    if train == 0:
+        for i in range(1):
+            hider = Hider(60, 60)
+            hiders.append(hider)
 
-    '''for i in range(1):
-        seeker = Seeker(400, 400, IMAGES['hider'])
-        seekers.append(seeker)'''
+    if train == 1:
+        for i in range(1):
+            seeker = Seeker(400, 400, IMAGES['hider'])
+            seekers.append(seeker)
 
     for i in range(0):
         obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width), np.random.randint(0, SCREENHEIGHT - Obstacle.height))
@@ -118,22 +118,28 @@ def main(genomes, config):
 
     nets = []
     ge = []
-    seekerNets = []
+    trainNets = []
 
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 2100
-        seeker = Seeker(400, 400)
-        seekerNets.append(seeker)
+        if train == 0:
+            seeker = Seeker(400, 400)
+            trainNets.append(seeker)
+        else:
+            hider = Hider(60, 60)
+            trainNets.append(hider)
         ge.append(g)
 
-    for x, seeker in enumerate(seekerNets):
+    for x, trained in enumerate(trainNets):
         print("new")
         run = True
         while run:
 
-            hider = hiders[0]
+            if train == 0:
+                seeker = trained
+                hider = hiders[0]
 
             if graphical_mode:
                 for event in pygame.event.get():
@@ -162,7 +168,10 @@ def main(genomes, config):
                         nextHiderX = hiders[a].x
                     # see
                     see = green
-                    ge[x].fitness += 200
+                    if train == 0:
+                        ge[x].fitness += 200
+                    else:
+                        ge[x].fitness -= 1500
                     run = False
                 elif i[1] == 1:
                     if i[2] < minDis:
@@ -172,7 +181,10 @@ def main(genomes, config):
                         nextHiderX = hiders[a].x
                     # see semi
                     see = yellow
-                    ge[x].fitness += 1
+                    if train == 0:
+                        ge[x].fitness += 1
+                    else:
+                        ge[x].fitness -= 1
 
                 elif i[1] == 2:
                     if i[2] < minDis:
@@ -183,20 +195,32 @@ def main(genomes, config):
                     # no see
                     see = red
 
-            if not debug_mode:
+            # wenn seeker trainiert wird
+            if train == 0:
+                if wHider == None:
+                    outputHider = [0, 0]
+                else:
+                    outputHider = wHider.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+
                 outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+            # wenn hider trainiert wird
             else:
-                outputSeeker = [0,0,0]
-
-
+                if wSeeker == None:
+                    outputSeeker = [0, 0]
+                else:
+                    outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+                outputHider = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
 
             if graphical_mode:
                 #move hider
-                if keys[pygame.K_UP]:
+                if debug_mode:
+                    if keys[pygame.K_UP]:
+                        hider.x, hider.y = move(hider)
+                else:
                     hider.x, hider.y = move(hider)
-                elif keys[pygame.K_LEFT]:
+                if keys[pygame.K_LEFT] or outputHider[0] > 0.5:
                     hider.angle = hider.angle + hider.rotVel
-                elif keys[pygame.K_RIGHT]:
+                if keys[pygame.K_RIGHT] or outputHider[1] > 0.5:
                     hider.angle = hider.angle - hider.rotVel
                 if hider.angle >= 360:
                     hider.angle -= 360
@@ -286,12 +310,33 @@ def main(genomes, config):
                 if seeker.angle <= 0:
                     seeker.angle += 360
 
+                # move hider
+                if debug_mode:
+                    if keys[pygame.K_UP]:
+                        hider.x, hider.y = move(hider)
+                else:
+                    hider.x, hider.y = move(hider)
+                if outputHider[0] > 0.5:
+                    hider.angle = hider.angle + hider.rotVel
+                if outputHider[1] > 0.5:
+                    hider.angle = hider.angle - hider.rotVel
+                if hider.angle >= 360:
+                    hider.angle -= 360
+                if hider.angle <= 0:
+                    hider.angle += 360
+
             loopIter += 1
             if loopIter == 1000:
                 run = False
-                ge[x].fitness -= 1500
-            ge[x].fitness -= 1
-            print(ge[x].fitness)
+                if train == 0:
+                    ge[x].fitness -= 1500
+                else:
+                    ge[x].fitness += 1500
+            if train == 0:
+                ge[x].fitness -= 1
+            else:
+                ge[x].fitness += 1
+            #print(ge[x].fitness)
 
             if graphical_mode:
                 FPSCLOCK.tick(FPS)
@@ -307,21 +352,43 @@ def getHitmask(image):
     return mask
 
 
-def run(config_file):
-    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+def run(configHider, configSeeker):
+
+    #train Seeker
+    train = 0
+    configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                config_file)
+                                configSeeker)
 
-    p = neat.Population(config)
+    pS = neat.Population(configS)
 
-    p.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    p.add_reporter(stats)
+    pS.add_reporter(neat.StdOutReporter(True))
+    statsS = neat.StatisticsReporter()
+    pS.add_reporter(statsS)
 
-    winner = p.run(main, 50)
+    winnerSeeker = pS.run(main, 200)
+    wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
+
+    #train Hider
+    train = 1
+    configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                 configHider)
+
+    pH = neat.Population(configH)
+
+    pH.add_reporter(neat.StdOutReporter(True))
+    statsH = neat.StatisticsReporter()
+    pH.add_reporter(statsH)
+
+    winnerHider = pH.run(main, 200)
+    wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+
+
 
 
 if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'configSeeker.txt')
-    run(config_path)
+    config_pathHider = os.path.join(local_dir, 'configHider.txt')
+    config_pathSeeker = os.path.join(local_dir, 'configSeeker.txt')
+    run(config_pathHider, config_pathSeeker)
