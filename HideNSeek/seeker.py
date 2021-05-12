@@ -3,7 +3,7 @@ from sympy import Circle, Segment
 
 
 class Seeker:
-    vel = 5
+    vel = 3
     rotVel = 5
     playerSurface = None
     catchRadius = 200

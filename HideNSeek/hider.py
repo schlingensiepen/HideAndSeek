@@ -1,7 +1,7 @@
 from sympy import Circle
 
 class Hider:
-    vel = 5
+    vel = 6
     rotVel = 5
 
     playerSurface = None
