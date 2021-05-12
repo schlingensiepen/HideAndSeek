@@ -10,6 +10,7 @@ from hider import Hider
 from seeker import Seeker
 from obstacle import Obstacle
 from sympy import Circle, Segment, Polygon
+from checkpoint import Checkpointer
 
 FPS = 30
 SCREENWIDTH = 800
@@ -20,6 +21,8 @@ wSeeker = None
 wHider = None
 train = 0  # 0 für Seeker 1 für Hider
 
+saver = Checkpointer()
+
 IMAGES = {}
 HITMASKS = {}
 
@@ -29,7 +32,7 @@ obstacles = []
 # spieler können selbst gesteuert werden
 debug_mode = False
 # es wird angzeigt, was passiert
-graphical_mode = False
+graphical_mode = True
 
 red = (213, 50, 80)
 green = (0, 255, 0)
@@ -119,6 +122,8 @@ def main(genomes, config):
     ge = []
     trainNets = []
 
+
+    
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
@@ -340,6 +345,19 @@ def main(genomes, config):
             # print(ge[x].fitness)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 def visResult():
     score = loopIter = 0
 
@@ -473,7 +491,6 @@ def visResult():
 
         # hider
 
-        hider.playerSurface = pygame.transform.rotate(IMAGES['hider'], hider.angle)
 
         for hider in hiders:
             # surface.blit(hider.playerSurface, (hider.x, hider.y))
@@ -507,14 +524,6 @@ def visResult():
         FPSCLOCK.tick(FPS)
 
 
-def getHitmask(image):
-    """returns a hitmask using an image's alpha."""
-    mask = []
-    for x in range(image.get_width()):
-        mask.append([])
-        for y in range(image.get_height()):
-            mask[x].append(bool(image.get_at((x, y))[3]))
-    return mask
 
 
 def run(configHider, configSeeker):
@@ -522,8 +531,12 @@ def run(configHider, configSeeker):
     global wHider
     global graphical_mode
     global train
+    generation_number = 0
+
     for i in range(100):
+        print('Generation: ', generation_number)
         # train Seeker
+        saver.start_generation(generation_number)
         train = 0
         configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -537,9 +550,11 @@ def run(configHider, configSeeker):
 
         winnerSeeker = pS.run(main, 1)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
+        
 
         # train Hider
         #graphical_mode = True
+    
         train = 1
         configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -553,6 +568,8 @@ def run(configHider, configSeeker):
 
         winnerHider = pH.run(main, 1)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+        generation_number += 1
+        saver.end_generation(configH, pH, winnerHider, configS, pS, winnerSeeker)
 
     input("Press Enter to continue...")
 
