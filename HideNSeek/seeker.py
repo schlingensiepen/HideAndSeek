@@ -9,12 +9,10 @@ class Seeker:
     catchRadius = 200
     findAngle = 60
 
-    def __init__(self, x, y, img):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
         self.angle = 90
-        self.width = img.get_width()
-        self.height = img.get_height()
         self.radius = 25
 
     def draw_circle(self, x=None, y=None):
