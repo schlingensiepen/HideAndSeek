@@ -446,9 +446,6 @@ def visResult():
         # move seeker
         if not debug_mode:
             nSeekerx, nSeekery = move(seeker)
-            if nSeekerx == seeker.x and nSeekery == seeker.y:
-                ge[x].fitness -= 1000
-                run = False
             seeker.x = nSeekerx
             seeker.y = nSeekery
         else:
