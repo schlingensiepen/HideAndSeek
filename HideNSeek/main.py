@@ -21,6 +21,8 @@ wSeeker = None
 wHider = None
 train = 0  # 0 für Seeker 1 für Hider
 
+#Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
+load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 saver = Checkpointer()
 
 IMAGES = {}
@@ -68,14 +70,6 @@ def move(character):
         if obs.y + obs.height >= newy - character.radius >= obs.y and obs.x <= newx <= obs.x + obs.width:
             return character.x, character.y
 
-    '''
-    circle = character.draw_circle(newx, newy) 
-    for obs in obstacles_sympy:       
-        intersect = circle.intersection(obs)
-        #print(intersect)
-        if intersect:
-            return character.x, character.y
-    '''
     return newx, newy
 
 
@@ -164,44 +158,42 @@ def main(genomes, config):
             see = False
             nextHiderX = -1
             nextHiderY = -1
-            minDis = 100000
+ 
 
             status = seeker.seeHider(hiders, obstacles_sympy)
             for i in status:
+
+                # see
                 if i[1] == 0:
-                    if i[2] < minDis:
-                        minDis = i[2]
-                        a = i[0]
-                        nextHiderY = hiders[a].y
-                        nextHiderX = hiders[a].x
-                    # see
                     see = green
+                    a = i[0]
+                    nextHiderY = hiders[a].y
+                    nextHiderX = hiders[a].x                                       
                     if train == 0:
                         ge[x].fitness += 200
                     else:
                         ge[x].fitness -= 1500
                     run = False
+
+                 # see semi
                 elif i[1] == 1:
-                    if i[2] < minDis:
-                        minDis = i[2]
-                        a = i[0]
-                        nextHiderY = hiders[a].y
-                        nextHiderX = hiders[a].x
-                    # see semi
                     see = yellow
+                    a = i[0]
+                    nextHiderY = hiders[a].y
+                    nextHiderX = hiders[a].x                             
                     if train == 0:
                         ge[x].fitness += 1
                     else:
                         ge[x].fitness -= 1
 
+                # no see
                 elif i[1] == 2:
-                    if i[2] < minDis:
-                        minDis = i[2]
-                        a = i[0]
-                        nextHiderY = -1
-                        nextHiderX = -1
-                    # no see
                     see = red
+                    a = i[0]
+                    nextHiderY = -1
+                    nextHiderX = -1
+                    
+                  
 
             # wenn seeker trainiert wird
             if train == 0:
@@ -247,10 +239,10 @@ def main(genomes, config):
                 else:
                     if keys[pygame.K_w]:
                         seeker.x, seeker.y = move(seeker)
-                if keys[pygame.K_a] or outputSeeker[0] > 0.5:
+                if  outputSeeker[0] > 0.5:
                     seeker.angle = seeker.angle + seeker.rotVel
                     ge[x].fitness += 0.1
-                if keys[pygame.K_d] or outputSeeker[1] > 0.5:
+                if  outputSeeker[1] > 0.5:
                     seeker.angle = seeker.angle - seeker.rotVel
                     ge[x].fitness += 0.1
                 if seeker.angle >= 360:
@@ -263,15 +255,12 @@ def main(genomes, config):
                                                        (int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
                 SCREEN.blit(surfaceScaled, (0, 0))
 
-                # for object in objects:
-                #    surface.blit(IMAGES['object'], (object.x, object.y))
+
 
                 # hider
 
-                hider.playerSurface = pygame.transform.rotate(IMAGES['hider'], hider.angle)
 
                 for hider in hiders:
-                    # surface.blit(hider.playerSurface, (hider.x, hider.y))
                     pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
                     newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
                     newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
@@ -279,9 +268,7 @@ def main(genomes, config):
 
                 # seeker
 
-                seeker.playerSurface = pygame.transform.rotate(IMAGES['seeker'], seeker.angle)
 
-                # surface.blit(seeker.playerSurface, (seeker.x, seeker.y))
                 pygame.draw.circle(SCREEN, red, [seeker.x, seeker.y], seeker.radius)
                 newx = seeker.x - np.sin(np.deg2rad(seeker.angle)) * seeker.radius
                 newy = seeker.y - np.cos(np.deg2rad(seeker.angle)) * seeker.radius
@@ -529,9 +516,15 @@ def run(configHider, configSeeker):
     global graphical_mode
     global train
     generation_number = 0
+    if load_checkpoints:
+        print('\n restoring Checkpoints...')
+        seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
+        hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
+        print(seekercheckpoint, hidercheckpoint)
+
 
     for i in range(100):
-        print('Generation: ', generation_number)
+        print('\n Generation: ', generation_number)
         # train Seeker
         saver.start_generation(generation_number)
         train = 0

@@ -54,11 +54,11 @@ class Seeker:
                     break'''
             # sees and in range
             if dis < self.catchRadius and min(difAngle, 360 - difAngle) < self.findAngle / 2 and los == True:
-                status.append([x, 0, dis])
+                status.append([x, 0])
             # sees but not in range
             elif min(difAngle, 360 - difAngle) < self.findAngle / 2 and los == True:
-                status.append([x, 1, dis])
+                status.append([x, 1])
             # no see
             else:
-                status.append([x, 2, 10000])
+                status.append([x, 2])
             return status
