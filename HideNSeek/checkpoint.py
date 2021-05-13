@@ -65,19 +65,19 @@ class Checkpointer(BaseReporter):
         """ Save the current simulation state. """
         filename = '{0}{1}{2}'.format(prefix, self.filename_prefix, generation)
         local_dir = os.path.dirname(__file__)
-        
-        path = '{0}{1}{2}'.format(local_dir, '/Checkpoints/', filename)
-        print(path)
+        full_path = '{0}{1}{2}'.format(local_dir, '/Checkpoints/', filename)
         print("Saving checkpoint to {0}".format(filename))
 
-        with gzip.open(path, 'wb', compresslevel=5) as f:
+        with gzip.open(full_path, 'wb', compresslevel=5) as f:
             data = (generation, config, population, species_set, random.getstate())
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     @staticmethod
     def restore_checkpoint(filename):
         """Resumes the simulation from a previous saved point."""
-        with gzip.open(filename) as f:
+        local_dir = os.path.dirname(__file__)
+        full_path = '{0}{1}{2}'.format(local_dir, '/Checkpoints/', filename)
+        with gzip.open(full_path) as f:
             generation, config, population, species_set, rndstate = pickle.load(f)
             random.setstate(rndstate)
             return Population(config, (population, species_set, generation))

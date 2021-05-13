@@ -23,6 +23,13 @@ train = 0  # 0 für Seeker 1 für Hider
 
 #Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
 load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
+
+# spieler können selbst gesteuert werden
+debug_mode = False
+
+# es wird angzeigt, was passiert
+graphical_mode = True
+
 saver = Checkpointer()
 
 IMAGES = {}
@@ -31,10 +38,7 @@ HITMASKS = {}
 obstacles_sympy = []
 obstacles = []
 
-# spieler können selbst gesteuert werden
-debug_mode = False
-# es wird angzeigt, was passiert
-graphical_mode = True
+
 
 red = (213, 50, 80)
 green = (0, 255, 0)
@@ -211,84 +215,81 @@ def main(genomes, config):
                     outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
                 outputHider = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
 
+
+            #GUI, falls gewollt
             if graphical_mode:
-                # move hider
-                if debug_mode:
-                    if keys[pygame.K_UP]:
-                        hider.x, hider.y = move(hider)
-                else:
-                    hider.x, hider.y = move(hider)
-                if keys[pygame.K_LEFT] or outputHider[0] > 0.5:
-                    hider.angle = hider.angle + hider.rotVel
-                if keys[pygame.K_RIGHT] or outputHider[1] > 0.5:
-                    hider.angle = hider.angle - hider.rotVel
-                if hider.angle >= 360:
-                    hider.angle -= 360
-                if hider.angle <= 0:
-                    hider.angle += 360
+                
 
-                # move seeker
-                if not debug_mode:
-                    nSeekerx, nSeekery = move(seeker)
-                    ge[x].fitness += 0.1
-                    if nSeekerx == seeker.x and nSeekery == seeker.y:
-                        ge[x].fitness -= 1000
-                        run = False
-                    seeker.x = nSeekerx
-                    seeker.y = nSeekery
-                else:
-                    if keys[pygame.K_w]:
-                        seeker.x, seeker.y = move(seeker)
-                if  outputSeeker[0] > 0.5:
-                    seeker.angle = seeker.angle + seeker.rotVel
-                    ge[x].fitness += 0.1
-                if  outputSeeker[1] > 0.5:
-                    seeker.angle = seeker.angle - seeker.rotVel
-                    ge[x].fitness += 0.1
-                if seeker.angle >= 360:
-                    seeker.angle -= 360
-                if seeker.angle <= 0:
-                    seeker.angle += 360
-
-                # draw sprites
+                #background
                 surfaceScaled = pygame.transform.scale(surface,
                                                        (int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
                 SCREEN.blit(surfaceScaled, (0, 0))
 
 
-
                 # hider
-
-
                 for hider in hiders:
                     pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
                     newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
                     newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
                     pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
+
                 # seeker
-
-
                 pygame.draw.circle(SCREEN, red, [seeker.x, seeker.y], seeker.radius)
                 newx = seeker.x - np.sin(np.deg2rad(seeker.angle)) * seeker.radius
                 newy = seeker.y - np.cos(np.deg2rad(seeker.angle)) * seeker.radius
                 pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
-                # sight visualsisazion
 
+                # line of sight visualsisazion
                 pygame.draw.line(SCREEN, see, [seeker.x, seeker.y], [hider.x, hider.y], 2)
 
+
+                # obstacles
                 for obstacle in obstacles:
                     pygame.draw.rect(SCREEN, black, [obstacle.x, obstacle.y, obstacle.width, obstacle.height])
 
                 pygame.display.update()
-            else:
-                # move seeker
 
+
+
+            # manuelle Steuerung              
+                
+            if debug_mode: 
+                # Seeker              
+                if keys[pygame.K_UP]:
+                    seeker.x, seeker.y = move(seeker)
+                if keys[pygame.K_LEFT]:
+                    seeker.angle = seeker.angle + seeker.rotVel
+                elif keys[pygame.K_RIGHT]:
+                    seeker.angle = seeker.angle - seeker.rotVel
+                if seeker.angle >= 360:
+                    seeker.angle -= 360
+                if seeker.angle <= 0:
+                    seeker.angle += 360
+
+                # Hider            
+                if keys[pygame.K_w]:
+                    hider.x, hider.y = move(hider)
+                if keys[pygame.K_a]:
+                    hider.angle = hider.angle + hider.rotVel
+                elif keys[pygame.K_d]:
+                    hider.angle = hider.angle - hider.rotVel
+                if hider.angle >= 360:
+                    hider.angle -= 360
+                if hider.angle <= 0:
+                    hider.angle += 360
+
+
+                # Movement durch KI
+                # Seeker
+            else:
+                # Seeker
                 nSeekerx, nSeekery = move(seeker)
                 ge[x].fitness += 0.1
                 if nSeekerx == seeker.x and nSeekery == seeker.y:
-                    ge[x].fitness -= 1000
+                    print('seeker hängt fest')
+                    ge[x].fitness -= 500
                     run = False
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
@@ -303,12 +304,8 @@ def main(genomes, config):
                 if seeker.angle <= 0:
                     seeker.angle += 360
 
-                # move hider
-                if debug_mode:
-                    if keys[pygame.K_UP]:
-                        hider.x, hider.y = move(hider)
-                else:
-                    hider.x, hider.y = move(hider)
+                # Hider
+                hider.x, hider.y = move(hider)
                 if outputHider[0] > 0.5:
                     hider.angle = hider.angle + hider.rotVel
                 if outputHider[1] > 0.5:
@@ -317,6 +314,8 @@ def main(genomes, config):
                     hider.angle -= 360
                 if hider.angle <= 0:
                     hider.angle += 360
+
+
 
             loopIter += 1
             if loopIter == 10000:
@@ -343,7 +342,7 @@ def main(genomes, config):
 
 
 
-
+'''
 
 def visResult():
     score = loopIter = 0
@@ -507,7 +506,7 @@ def visResult():
 
         FPSCLOCK.tick(FPS)
 
-
+'''
 
 
 def run(configHider, configSeeker):
