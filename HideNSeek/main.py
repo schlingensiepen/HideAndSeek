@@ -180,6 +180,7 @@ def main(genomes, config):
                     else:
                         ge[x].fitness -= 2000
                     run = False
+                    print('hider gefunden')
 
                 # see semi
                 elif i[1] == 1:
@@ -311,6 +312,7 @@ def main(genomes, config):
 
             loopIter += 1
             if loopIter == 5000:
+                print('Zeit abgelaufen')
                 run = False
                 if train == 0:
                     ge[x].fitness -= 1500
@@ -507,7 +509,7 @@ def run(configHider, configSeeker):
         statsS = neat.StatisticsReporter()
         pS.add_reporter(statsS)
 
-        winnerSeeker = pS.run(main, 50)
+        winnerSeeker = pS.run(main, 10)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
         # train Hider
@@ -522,7 +524,7 @@ def run(configHider, configSeeker):
         statsH = neat.StatisticsReporter()
         pH.add_reporter(statsH)
 
-        winnerHider = pH.run(main, 50)
+        winnerHider = pH.run(main, 10)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
         generation_number += 1
         saver.end_generation(configH, pH, winnerHider, configS, pS, winnerSeeker)
