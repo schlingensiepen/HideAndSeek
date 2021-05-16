@@ -12,7 +12,7 @@ from obstacle import Obstacle
 from sympy import Circle, Segment, Polygon
 from checkpoint import Checkpointer
 
-FPS = 30
+FPS = 10000000
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
@@ -261,9 +261,6 @@ def main(genomes, config):
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
 
-                if graphical_mode:
-                    print(hider.x, hider.y)
-
                 # Hider
 
                 if outputHider[0] > 0.5:
@@ -307,7 +304,7 @@ def main(genomes, config):
                 pygame.display.update()
 
             loopIter += 1
-            if loopIter == 10000:
+            if loopIter == 5000:
                 run = False
                 if train == 0:
                     ge[x].fitness -= 1500
@@ -377,35 +374,31 @@ def visResult():
         minDis = 100000
         status = seeker.seeHider(hiders, obstacles_sympy)
         for i in status:
-            if i[1] == 0:
-                if i[2] < minDis:
-                    minDis = i[2]
-                    a = i[0]
-                    nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x
-                # see
-                see = green
-                run = False
-            elif i[1] == 1:
-                if i[2] < minDis:
-                    minDis = i[2]
-                    a = i[0]
-                    nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x
-                # see semi
-                see = yellow
 
+            # see
+            if i[1] == 0:
+                see = green
+                a = i[0]
+                nextHiderY = hiders[a].y
+                nextHiderX = hiders[a].x
+                run = False
+
+            # see semi
+            elif i[1] == 1:
+                see = yellow
+                a = i[0]
+                nextHiderY = hiders[a].y
+                nextHiderX = hiders[a].x
+
+            # no see
             elif i[1] == 2:
-                if i[2] < minDis:
-                    minDis = i[2]
-                    a = i[0]
-                    nextHiderY = -1
-                    nextHiderX = -1
-                # no see
                 see = red
+                a = i[0]
+                nextHiderY = -1
+                nextHiderX = -1
 
         # outputs generieren
-        outputHider = wHider.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+        outputHider = wHider.activate((hider.x, hider.y, hider.angle, seeker.angle, seeker.x, seeker.y))
         outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
 
         # move hider
@@ -450,12 +443,11 @@ def visResult():
 
         # hider
 
-        for hider in hiders:
-            # surface.blit(hider.playerSurface, (hider.x, hider.y))
-            pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
-            newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
-            newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
-            pygame.draw.circle(SCREEN, white, [newx, newy], 5)
+        # surface.blit(hider.playerSurface, (hider.x, hider.y))
+        pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
+        newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
+        newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
+        pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
         # seeker
 
@@ -488,15 +480,15 @@ def run(configHider, configSeeker):
     global graphical_mode
     global train
     generation_number = 0
-    if load_checkpoints:
+    '''if load_checkpoints:
         print('\n restoring Checkpoints...')
         seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
         hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
-        print(seekercheckpoint, hidercheckpoint)
+        print(seekercheckpoint, hidercheckpoint)'''
 
-    for i in range(10):
+    for i in range(1):
         print('\n Generation: ', generation_number)
-        # graphical_mode = False
+        graphical_mode = True
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
@@ -510,12 +502,12 @@ def run(configHider, configSeeker):
         statsS = neat.StatisticsReporter()
         pS.add_reporter(statsS)
 
-        winnerSeeker = pS.run(main, 50)
+        winnerSeeker = pS.run(main, 1)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
         # train Hider
 
-        graphical_mode = True
+        #graphical_mode = True
 
         train = 1
         configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -528,14 +520,14 @@ def run(configHider, configSeeker):
         statsH = neat.StatisticsReporter()
         pH.add_reporter(statsH)
 
-        winnerHider = pH.run(main, 50)
+        winnerHider = pH.run(main, 1)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
         generation_number += 1
         saver.end_generation(configH, pH, winnerHider, configS, pS, winnerSeeker)
 
     input("Press Enter to continue...")
 
-    # visResult()
+    visResult()
 
 
 if __name__ == '__main__':
