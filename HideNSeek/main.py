@@ -21,7 +21,7 @@ wSeeker = None
 wHider = None
 train = 0  # 0 für Seeker 1 für Hider
 
-#Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
+# Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
 load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 
 # spieler können selbst gesteuert werden
@@ -37,8 +37,6 @@ HITMASKS = {}
 
 obstacles_sympy = []
 obstacles = []
-
-
 
 red = (213, 50, 80)
 green = (0, 255, 0)
@@ -120,8 +118,6 @@ def main(genomes, config):
     ge = []
     trainNets = []
 
-
-    
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
@@ -162,7 +158,7 @@ def main(genomes, config):
             see = False
             nextHiderX = -1
             nextHiderY = -1
- 
+
             # prüft was gesehen wird
             status = seeker.seeHider(hiders, obstacles_sympy)
             for i in status:
@@ -172,19 +168,19 @@ def main(genomes, config):
                     see = green
                     a = i[0]
                     nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x                                       
+                    nextHiderX = hiders[a].x
                     if train == 0:
                         ge[x].fitness += 200
                     else:
                         ge[x].fitness -= 2000
                     run = False
 
-                 # see semi
+                # see semi
                 elif i[1] == 1:
                     see = yellow
                     a = i[0]
                     nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x                             
+                    nextHiderX = hiders[a].x
                     if train == 0:
                         ge[x].fitness += 1
                     else:
@@ -202,7 +198,7 @@ def main(genomes, config):
                 if wHider == None:
                     outputHider = [0, 0]
                 else:
-                    outputHider = wHider.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seeker.angle, seeker.x, seeker.y))
 
                 outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
 
@@ -213,7 +209,6 @@ def main(genomes, config):
                 else:
                     outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
                 outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seeker.angle, seeker.x, seeker.y))
-
 
             # manuelle Steuerung
 
@@ -282,18 +277,13 @@ def main(genomes, config):
 
                 hider.x, hider.y = move(hider)
 
-
-
-
-            #GUI, falls gewollt
+            # GUI, falls gewollt
             if graphical_mode:
-                
 
-                #background
+                # background
                 surfaceScaled = pygame.transform.scale(surface,
                                                        (int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
                 SCREEN.blit(surfaceScaled, (0, 0))
-
 
                 # hider
                 pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
@@ -301,29 +291,20 @@ def main(genomes, config):
                 newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
                 pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
-
                 # seeker
                 pygame.draw.circle(SCREEN, red, [seeker.x, seeker.y], seeker.radius)
                 newx = seeker.x - np.sin(np.deg2rad(seeker.angle)) * seeker.radius
                 newy = seeker.y - np.cos(np.deg2rad(seeker.angle)) * seeker.radius
                 pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
-
                 # line of sight visualsisazion
                 pygame.draw.line(SCREEN, see, [seeker.x, seeker.y], [hider.x, hider.y], 2)
-
 
                 # obstacles
                 for obstacle in obstacles:
                     pygame.draw.rect(SCREEN, black, [obstacle.x, obstacle.y, obstacle.width, obstacle.height])
 
                 pygame.display.update()
-
-
-
-
-
-
 
             loopIter += 1
             if loopIter == 10000:
@@ -337,13 +318,6 @@ def main(genomes, config):
             else:
                 ge[x].fitness += 1
             # print(ge[x].fitness)
-
-
-
-
-
-
-
 
 
 def visResult():
@@ -476,7 +450,6 @@ def visResult():
 
         # hider
 
-
         for hider in hiders:
             # surface.blit(hider.playerSurface, (hider.x, hider.y))
             pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
@@ -509,8 +482,6 @@ def visResult():
         FPSCLOCK.tick(FPS)
 
 
-
-
 def run(configHider, configSeeker):
     global wSeeker
     global wHider
@@ -523,10 +494,9 @@ def run(configHider, configSeeker):
         hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
         print(seekercheckpoint, hidercheckpoint)
 
-
     for i in range(10):
         print('\n Generation: ', generation_number)
-        #graphical_mode = False
+        # graphical_mode = False
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
@@ -542,12 +512,11 @@ def run(configHider, configSeeker):
 
         winnerSeeker = pS.run(main, 50)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
-        
 
         # train Hider
 
-        #graphical_mode = True
-    
+        graphical_mode = True
+
         train = 1
         configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -566,7 +535,7 @@ def run(configHider, configSeeker):
 
     input("Press Enter to continue...")
 
-    #visResult()
+    # visResult()
 
 
 if __name__ == '__main__':
