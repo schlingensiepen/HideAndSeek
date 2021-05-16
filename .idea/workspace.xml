@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="504485c6-6b97-450a-8cd7-f7eaf60cff5b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/HideNSeek/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/HideNSeek/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/HideNSeek/Checkpoints/hider-neat-checkpoint-2" beforeDir="false" afterPath="$PROJECT_DIR$/HideNSeek/Checkpoints/hider-neat-checkpoint-2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/HideNSeek/Checkpoints/seeker-neat-checkpoint-2" beforeDir="false" afterPath="$PROJECT_DIR$/HideNSeek/Checkpoints/seeker-neat-checkpoint-2" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
