@@ -134,8 +134,10 @@ def main(genomes, config):
     for x, trained in enumerate(trainNets):
         hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
         hider.y = np.random.randint(hider.radius, SCREENHEIGHT - hider.radius)
+        hider.angle = np.random.randint(0, 360)
         seeker.x = np.random.randint(seeker.radius, SCREENWIDTH - seeker.radius)
         seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
+        seeker.angle = np.random.randint(0, 360)
         run = True
         while run:
 
