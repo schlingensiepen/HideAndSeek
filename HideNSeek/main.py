@@ -526,7 +526,7 @@ def run(configHider, configSeeker):
 
     for i in range(10):
         print('\n Generation: ', generation_number)
-        graphical_mode = False
+        #graphical_mode = False
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
@@ -546,7 +546,7 @@ def run(configHider, configSeeker):
 
         # train Hider
 
-        graphical_mode = True
+        #graphical_mode = True
     
         train = 1
         configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
