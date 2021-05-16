@@ -9,7 +9,7 @@ class Hider:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.angle = 90
+        self.angle = 270
         self.radius = 25
 
     def draw_circle(self, x = None, y = None):

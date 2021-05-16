@@ -28,7 +28,7 @@ load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = True
+graphical_mode = False
 
 saver = Checkpointer()
 
@@ -266,6 +266,8 @@ def main(genomes, config):
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
 
+                if graphical_mode:
+                    print(hider.x, hider.y)
 
                 # Hider
 
@@ -281,6 +283,8 @@ def main(genomes, config):
                 hider.x, hider.y = move(hider)
 
 
+
+
             #GUI, falls gewollt
             if graphical_mode:
                 
@@ -292,11 +296,10 @@ def main(genomes, config):
 
 
                 # hider
-                for hider in hiders:
-                    pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
-                    newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
-                    newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
-                    pygame.draw.circle(SCREEN, white, [newx, newy], 5)
+                pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
+                newx = hider.x - np.sin(np.deg2rad(hider.angle)) * hider.radius
+                newy = hider.y - np.cos(np.deg2rad(hider.angle)) * hider.radius
+                pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
 
                 # seeker
@@ -521,8 +524,9 @@ def run(configHider, configSeeker):
         print(seekercheckpoint, hidercheckpoint)
 
 
-    for i in range(1):
+    for i in range(10):
         print('\n Generation: ', generation_number)
+        graphical_mode = False
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
@@ -536,7 +540,7 @@ def run(configHider, configSeeker):
         statsS = neat.StatisticsReporter()
         pS.add_reporter(statsS)
 
-        winnerSeeker = pS.run(main, 5)
+        winnerSeeker = pS.run(main, 50)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
         
 
