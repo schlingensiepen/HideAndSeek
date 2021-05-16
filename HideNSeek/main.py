@@ -28,7 +28,7 @@ load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = False
+graphical_mode = True
 
 saver = Checkpointer()
 
@@ -132,6 +132,10 @@ def main(genomes, config):
         ge.append(g)
 
     for x, trained in enumerate(trainNets):
+        hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
+        hider.y = np.random.randint(hider.radius, SCREENHEIGHT - hider.radius)
+        seeker.x = np.random.randint(seeker.radius, SCREENWIDTH - seeker.radius)
+        seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
         run = True
         while run:
 
@@ -486,9 +490,8 @@ def run(configHider, configSeeker):
         hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
         print(seekercheckpoint, hidercheckpoint)'''
 
-    for i in range(1):
+    for i in range(200):
         print('\n Generation: ', generation_number)
-        graphical_mode = True
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
@@ -502,13 +505,10 @@ def run(configHider, configSeeker):
         statsS = neat.StatisticsReporter()
         pS.add_reporter(statsS)
 
-        winnerSeeker = pS.run(main, 1)
+        winnerSeeker = pS.run(main, 50)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
         # train Hider
-
-        #graphical_mode = True
-
         train = 1
         configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -520,7 +520,7 @@ def run(configHider, configSeeker):
         statsH = neat.StatisticsReporter()
         pH.add_reporter(statsH)
 
-        winnerHider = pH.run(main, 1)
+        winnerHider = pH.run(main, 50)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
         generation_number += 1
         saver.end_generation(configH, pH, winnerHider, configS, pS, winnerSeeker)
