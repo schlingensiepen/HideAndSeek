@@ -12,7 +12,7 @@ from obstacle import Obstacle
 from sympy import Circle, Segment, Polygon
 from checkpoint import Checkpointer
 
-FPS = 10000000
+FPS = 60
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
