@@ -1,5 +1,14 @@
 import numpy as np
-from sympy import Circle, Segment
+
+def ccw(A,B,C):
+    return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+def intersect(line1, line2):
+    A = line1[0]
+    B = line1[1]
+    C = line2[0]
+    D = line2[1]
+    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
 
 class Seeker:
@@ -15,16 +24,10 @@ class Seeker:
         self.angle = 90
         self.radius = 25
 
-    def draw_circle(self, x=None, y=None):
-        if x == None:
-            x = self.x
-        if y == None:
-            y = self.y
-        circle = Circle([x, y], self.radius)
-        return circle
+    
+
 
     def seeHider(self, hiders, obstacles):
-        seeker_circle = self.draw_circle()
         status = []
 
         for x, hider in enumerate(hiders):
@@ -42,16 +45,17 @@ class Seeker:
                 angle += 180
             difAngle = abs(angle - self.angle)
 
-            #viewline_center = Segment([self.x, self.y], [hider.x, hider.y])
-            # tangente1, tangente2 = hider_circle.tangent_lines([self.x, self.y])
-            # seg = Segment(tangente1[0], tangente1[1])
-            # print(tangente1, tangente2)
+            viewline = ((self.x, self.y), (hider.x, hider.y))
 
-            '''for obs in obstacles:
-                broken_los = viewline_center.intersection(obs)
-                if broken_los:
+            #check if any obstacles block vision
+            for obs in obstacles:
+                obs_line = ((obs.x, obs.y-0,5*obs.height), (obs.x + obs.width, obs.y-0,5*obs.height))
+                broken_los = intersect(viewline, obs_line)
+                print(broken_los)
+                if broken_los == True:
+                    print('hindernis im weg')
                     los = False
-                    break'''
+                    break
             # sees and in range
             if dis < self.catchRadius and min(difAngle, 360 - difAngle) < self.findAngle / 2 and los == True:
                 status.append([x, 0])

@@ -12,7 +12,7 @@ from obstacle import Obstacle
 from sympy import Circle, Segment, Polygon
 from checkpoint import Checkpointer
 
-FPS = 60
+
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
@@ -25,10 +25,13 @@ train = 0  # 0 für Seeker 1 für Hider
 load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 
 # spieler können selbst gesteuert werden
-debug_mode = False
+debug_mode = True
 
 # es wird angzeigt, was passiert
 graphical_mode = True
+
+#geschwindigkeit im graphical mode cappen
+FPS = 1000
 
 saver = Checkpointer()
 
@@ -78,9 +81,10 @@ def move(character):
 def main(genomes, config):
     score = loopIter = 0
 
-    global SCREEN, FPSCLOCK
+    
 
     if graphical_mode:
+        global SCREEN, FPSCLOCK
         pygame.init()
         FPSCLOCK = pygame.time.Clock()
         SCREEN = pygame.display.set_mode((int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
@@ -93,6 +97,7 @@ def main(genomes, config):
 
         surface = pygame.Surface((SCREENWIDTH, SCREENHEIGHT))
         surface.blit(IMAGES['background'], (0, 0))
+        
 
     hiders = []
     seekers = []
@@ -107,7 +112,7 @@ def main(genomes, config):
             seeker = Seeker(400, 400)
             seekers.append(seeker)
 
-    for i in range(0):
+    for i in range(3):
         obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width),
                        np.random.randint(0, SCREENHEIGHT - Obstacle.height))
         obstacles.append(obs)
@@ -139,6 +144,8 @@ def main(genomes, config):
         seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
         seeker.angle = np.random.randint(0, 360)
         run = True
+
+        #Gameloop
         while run:
 
             if train == 0:
@@ -155,10 +162,9 @@ def main(genomes, config):
                         run = False
                         sys.exit()
 
-                keys = pygame.key.get_pressed()
+                
             else:
                 event = False
-                keys = None
 
             # see hiders
             see = False
@@ -166,7 +172,7 @@ def main(genomes, config):
             nextHiderY = -1
 
             # prüft was gesehen wird
-            status = seeker.seeHider(hiders, obstacles_sympy)
+            status = seeker.seeHider(hiders, obstacles)
             for i in status:
 
                 # see
@@ -220,6 +226,7 @@ def main(genomes, config):
             # manuelle Steuerung
 
             if debug_mode:
+                keys = pygame.key.get_pressed()
                 # Seeker
                 if keys[pygame.K_UP]:
                     seeker.x, seeker.y = move(seeker)
@@ -309,6 +316,7 @@ def main(genomes, config):
                     pygame.draw.rect(SCREEN, black, [obstacle.x, obstacle.y, obstacle.width, obstacle.height])
 
                 pygame.display.update()
+                FPSCLOCK.tick(FPS)
 
             loopIter += 1
             if loopIter == 5000:
@@ -488,11 +496,14 @@ def run(configHider, configSeeker):
     global graphical_mode
     global train
     generation_number = 0
-    '''if load_checkpoints:
+    if load_checkpoints:
         print('\n restoring Checkpoints...')
-        seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
-        hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
-        print(seekercheckpoint, hidercheckpoint)'''
+        try:      
+            seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
+            hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
+            print(seekercheckpoint, hidercheckpoint)
+        except:
+            print('Checkpoints not found')
 
     for i in range(200):
         print('\n Generation: ', generation_number)
