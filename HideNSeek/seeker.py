@@ -49,11 +49,10 @@ class Seeker:
 
             #check if any obstacles block vision
             for obs in obstacles:
-                obs_line = ((obs.x, obs.y-0,5*obs.height), (obs.x + obs.width, obs.y-0,5*obs.height))
+                obs_line = ((obs.x, obs.y + obs.height/2), (obs.x + obs.width, obs.y + obs.height/2))
                 broken_los = intersect(viewline, obs_line)
-                print(broken_los)
+
                 if broken_los == True:
-                    print('hindernis im weg')
                     los = False
                     break
             # sees and in range

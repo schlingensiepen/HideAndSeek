@@ -9,7 +9,6 @@ from pygame.locals import *
 from hider import Hider
 from seeker import Seeker
 from obstacle import Obstacle
-from sympy import Circle, Segment, Polygon
 from checkpoint import Checkpointer
 
 
@@ -25,20 +24,19 @@ train = 0  # 0 für Seeker 1 für Hider
 load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
 
 # spieler können selbst gesteuert werden
-debug_mode = True
+debug_mode = False
 
 # es wird angzeigt, was passiert
 graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
-FPS = 1000
+FPS = 10000
 
 saver = Checkpointer()
 
 IMAGES = {}
 HITMASKS = {}
 
-obstacles_sympy = []
 obstacles = []
 
 red = (213, 50, 80)
@@ -112,12 +110,12 @@ def main(genomes, config):
             seeker = Seeker(400, 400)
             seekers.append(seeker)
 
+    obstacles.clear()
     for i in range(3):
         obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width),
                        np.random.randint(0, SCREENHEIGHT - Obstacle.height))
         obstacles.append(obs)
-        sympobs = obs.sympy_obstacle(obs)
-        obstacles_sympy.append(sympobs)
+   
 
     nets = []
     ge = []
@@ -366,8 +364,6 @@ def visResult():
         obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width),
                        np.random.randint(0, SCREENHEIGHT - Obstacle.height))
         obstacles.append(obs)
-        sympobs = obs.sympy_obstacle(obs)
-        obstacles_sympy.append(sympobs)
 
     run = True
     while run:
@@ -388,7 +384,7 @@ def visResult():
         nextHiderX = -1
         nextHiderY = -1
         minDis = 100000
-        status = seeker.seeHider(hiders, obstacles_sympy)
+        status = seeker.seeHider(hiders, obstacles)
         for i in status:
 
             # see
@@ -496,25 +492,33 @@ def run(configHider, configSeeker):
     global graphical_mode
     global train
     generation_number = 0
+    configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configSeeker)
+    configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configHider)
     if load_checkpoints:
-        print('\n restoring Checkpoints...')
+        print('\nrestoring Checkpoints...')
         try:      
-            seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
-            hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
-            print(seekercheckpoint, hidercheckpoint)
+            pS = saver.restore_checkpoint(load_checkpoints[0])
+            pH = saver.restore_checkpoint(load_checkpoints[1])
+            print(pS, pH)
         except:
             print('Checkpoints not found')
+            pS = neat.Population(configS)
+            pH = neat.Population(configH)
+            print(pS, pH)
+    
+
 
     for i in range(200):
-        print('\n Generation: ', generation_number)
+        print('\nGeneration: ', generation_number)
         # train Seeker
         saver.start_generation(generation_number)
         train = 0
-        configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configSeeker)
-
-        pS = neat.Population(configS)
+        
+        
 
         pS.add_reporter(neat.StdOutReporter(True))
         statsS = neat.StatisticsReporter()
@@ -525,11 +529,9 @@ def run(configHider, configSeeker):
 
         # train Hider
         train = 1
-        configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configHider)
+        
 
-        pH = neat.Population(configH)
+        
 
         pH.add_reporter(neat.StdOutReporter(True))
         statsH = neat.StatisticsReporter()
@@ -538,7 +540,7 @@ def run(configHider, configSeeker):
         winnerHider = pH.run(main, 10)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
         generation_number += 1
-        saver.end_generation(configH, pH, winnerHider, configS, pS, winnerSeeker)
+        saver.end_generation(configH, pH, configS, pS)
 
     input("Press Enter to continue...")
 
