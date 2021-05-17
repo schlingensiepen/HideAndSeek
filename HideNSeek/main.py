@@ -21,7 +21,7 @@ wHider = None
 train = 'seeker'  # wer trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
+load_checkpoints = ['seeker-neat-checkpoint-49', 'hider-neat-checkpoint-49']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
@@ -46,6 +46,22 @@ yellow = (255, 255, 102)
 white = (255, 255, 255)
 black = (0, 0, 0)
 
+def obstacle_collision(character, x, y):
+    for obs in obstacles:
+        # links
+        if obs.x <= x + character.radius <= obs.x + obs.width and obs.y <= y <= obs.y + obs.height:
+            return True
+        # rechts
+        if obs.x + obs.width >= x - character.radius >= obs.x and obs.y <= y <= obs.y + obs.height:
+            return True
+        # oben
+        if obs.y <= y + character.radius <= obs.y + obs.height and obs.x <= x <= obs.x + obs.width:
+            return True           
+        # unten
+        if obs.y + obs.height >= y - character.radius >= obs.y and obs.x <= x <= obs.x + obs.width:
+            return True
+    return False
+
 
 def move(character):
     newx = int(character.x - np.sin(np.deg2rad(character.angle)) * character.vel)
@@ -56,22 +72,10 @@ def move(character):
     if newx + radius >= SCREENWIDTH or newx - radius < 0 or newy + radius >= SCREENHEIGHT or newy - radius < 0:
         return character.x, character.y
 
-    # check obstacles jetzt neu mit ohne sympy
-    for obs in obstacles:
-        # links
-        if obs.x <= newx + character.radius <= obs.x + obs.width and obs.y <= newy <= obs.y + obs.height:
-            return character.x, character.y
-        # rechts
-        if obs.x + obs.width >= newx - character.radius >= obs.x and obs.y <= newy <= obs.y + obs.height:
-            return character.x, character.y
-
-        # oben
-        if obs.y <= newy + character.radius <= obs.y + obs.height and obs.x <= newx <= obs.x + obs.width:
-            return character.x, character.y
-
-        # unten
-        if obs.y + obs.height >= newy - character.radius >= obs.y and obs.x <= newx <= obs.x + obs.width:
-            return character.x, character.y
+    # check obstacles  
+    collision = obstacle_collision(character, newx, newy)
+    if collision == True:
+        return character.x, character.y
 
     return newx, newy
 
@@ -135,13 +139,22 @@ def main(genomes, config):
 
     for x, trained in enumerate(trainNets):
         loopIter = 0
-        hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
-        hider.y = np.random.randint(hider.radius, SCREENHEIGHT - hider.radius)
-        hider.angle = np.random.randint(0, 360)
-        seeker.x = np.random.randint(seeker.radius, SCREENWIDTH - seeker.radius)
-        seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
-        seeker.angle = np.random.randint(0, 360)
         run = True
+
+        hider_in_obstacle = True
+        while hider_in_obstacle == True:
+            hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
+            hider.y = np.random.randint(hider.radius, SCREENHEIGHT - hider.radius)
+            hider_in_obstacle = obstacle_collision(hider, hider.x, hider.y)
+        hider.angle = np.random.randint(0, 360)
+
+        seeker_in_obstacle = True
+        while seeker_in_obstacle == True:
+            seeker.x = np.random.randint(seeker.radius, SCREENWIDTH - seeker.radius)
+            seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
+            seeker_in_obstacle = obstacle_collision(seeker, seeker.x, seeker.y)
+        seeker.angle = np.random.randint(0, 360)
+        
 
         #Gameloop
         while run:
@@ -286,7 +299,7 @@ def main(genomes, config):
 
                 nHiderx, nHidery = move(hider)
 
-                if nSeekerx == seeker.x and nSeekery == seeker.y:
+                if nHiderx == hider.x and nHidery == hider.y:
                     if train == 'hider':
                         ge[x].fitness -= 100
                         loopIter += 30
