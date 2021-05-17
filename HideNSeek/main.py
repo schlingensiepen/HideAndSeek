@@ -18,7 +18,7 @@ SCALING = 1
 
 wSeeker = None
 wHider = None
-train = 0  # 0 für Seeker 1 für Hider
+train = 'seeker'  # wer trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
 load_checkpoints = ['seeker-neat-checkpoint-2', 'hider-neat-checkpoint-2']
@@ -77,7 +77,7 @@ def move(character):
 
 
 def main(genomes, config):
-    score = loopIter = 0
+    
 
     
 
@@ -87,11 +87,10 @@ def main(genomes, config):
         FPSCLOCK = pygame.time.Clock()
         SCREEN = pygame.display.set_mode((int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
         pygame.display.set_caption('Hide and Seek')
+        pygame.font.init()
+        myfont = pygame.font.SysFont('Calibri', 25)
 
         IMAGES['background'] = pygame.image.load('sprites/bg.png').convert_alpha()
-        IMAGES['hider'] = pygame.image.load('sprites/hider.png').convert_alpha()
-        IMAGES['seeker'] = pygame.image.load('sprites/seeker.png').convert_alpha()
-        IMAGES['object'] = pygame.image.load('sprites/object.png').convert_alpha()
 
         surface = pygame.Surface((SCREENWIDTH, SCREENHEIGHT))
         surface.blit(IMAGES['background'], (0, 0))
@@ -100,12 +99,12 @@ def main(genomes, config):
     hiders = []
     seekers = []
 
-    if train == 0:
+    if train == 'seeker':
         for i in range(1):
             hider = Hider(200, 60)
             hiders.append(hider)
 
-    if train == 1:
+    if train == 'hider':
         for i in range(1):
             seeker = Seeker(400, 400)
             seekers.append(seeker)
@@ -125,7 +124,7 @@ def main(genomes, config):
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 2100
-        if train == 0:
+        if train == 'seeker':
             seeker = Seeker(400, 400)
             trainNets.append(seeker)
         else:
@@ -135,6 +134,7 @@ def main(genomes, config):
         ge.append(g)
 
     for x, trained in enumerate(trainNets):
+        loopIter = 0
         hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
         hider.y = np.random.randint(hider.radius, SCREENHEIGHT - hider.radius)
         hider.angle = np.random.randint(0, 360)
@@ -146,7 +146,7 @@ def main(genomes, config):
         #Gameloop
         while run:
 
-            if train == 0:
+            if train == 'seeker':
                 seeker = trained
                 hider = hiders[0]
             else:
@@ -179,8 +179,8 @@ def main(genomes, config):
                     a = i[0]
                     nextHiderY = hiders[a].y
                     nextHiderX = hiders[a].x
-                    if train == 0:
-                        ge[x].fitness += 200
+                    if train == 'seeker':
+                        ge[x].fitness += 2000
                     else:
                         ge[x].fitness -= 2000
                     run = False
@@ -192,7 +192,7 @@ def main(genomes, config):
                     a = i[0]
                     nextHiderY = hiders[a].y
                     nextHiderX = hiders[a].x
-                    if train == 0:
+                    if train == 'seeker':
                         ge[x].fitness += 1
                     else:
                         ge[x].fitness -= 1
@@ -205,7 +205,7 @@ def main(genomes, config):
                     nextHiderX = -1
 
             # wenn seeker trainiert wird
-            if train == 0:
+            if train == 'seeker':
                 if wHider == None:
                     outputHider = [0, 0]
                 else:
@@ -266,10 +266,10 @@ def main(genomes, config):
                 nSeekerx, nSeekery = move(seeker)
                 ge[x].fitness += 0.1
                 if nSeekerx == seeker.x and nSeekery == seeker.y:
-                    print('seeker hängt fest')
-                    if train == 0:
-                        ge[x].fitness -= 500
-                    run = False
+                    if train == 'seeker':
+                        ge[x].fitness -= 100
+                        loopIter += 30
+                  #  run = False
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
 
@@ -284,7 +284,14 @@ def main(genomes, config):
                 if hider.angle <= 0:
                     hider.angle += 360
 
-                hider.x, hider.y = move(hider)
+                nHiderx, nHidery = move(hider)
+
+                if nSeekerx == seeker.x and nSeekery == seeker.y:
+                    if train == 'hider':
+                        ge[x].fitness -= 100
+                        loopIter += 30
+                hider.x = nHiderx
+                hider.y = nHidery
 
             # GUI, falls gewollt
             if graphical_mode:
@@ -293,6 +300,15 @@ def main(genomes, config):
                 surfaceScaled = pygame.transform.scale(surface,
                                                        (int(SCREENWIDTH * SCALING), int(SCREENHEIGHT * SCALING)))
                 SCREEN.blit(surfaceScaled, (0, 0))
+
+                #text
+                if train == 'seeker':
+                    text_color = red
+                else:
+                    text_color = green
+                text = '{0}{1}'.format('trainiert: ', train)
+                textsurface = myfont.render((text), False, text_color)
+                SCREEN.blit(textsurface,(0,0))
 
                 # hider
                 pygame.draw.circle(SCREEN, blue, [hider.x, hider.y], hider.radius)
@@ -317,14 +333,16 @@ def main(genomes, config):
                 FPSCLOCK.tick(FPS)
 
             loopIter += 1
-            if loopIter == 5000:
+            if loopIter >= 5000:
                 print('Zeit abgelaufen')
                 run = False
-                if train == 0:
+                '''    könnte zu fehlverhalten führen? 
+                if train == 'seeker':
                     ge[x].fitness -= 1500
                 else:
                     ge[x].fitness += 1500
-            if train == 0:
+                '''
+            if train == 'seeker':
                 ge[x].fitness -= 1
             else:
                 ge[x].fitness += 1
@@ -503,42 +521,38 @@ def run(configHider, configSeeker):
         try:      
             pS = saver.restore_checkpoint(load_checkpoints[0])
             pH = saver.restore_checkpoint(load_checkpoints[1])
-            print(pS, pH)
+            print('Checkpoints geladen')
         except:
             print('Checkpoints not found')
             pS = neat.Population(configS)
             pH = neat.Population(configH)
             print(pS, pH)
     
+    pS.add_reporter(neat.StdOutReporter(True))
+    statsS = neat.StatisticsReporter()
+    pS.add_reporter(statsS)
+
+    pH.add_reporter(neat.StdOutReporter(True))
+    statsH = neat.StatisticsReporter()
+    pH.add_reporter(statsH)
 
 
     for i in range(200):
         print('\nGeneration: ', generation_number)
+
         # train Seeker
         saver.start_generation(generation_number)
-        train = 0
+        train = 'seeker'      
         
-        
-
-        pS.add_reporter(neat.StdOutReporter(True))
-        statsS = neat.StatisticsReporter()
-        pS.add_reporter(statsS)
-
         winnerSeeker = pS.run(main, 10)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
 
         # train Hider
-        train = 1
+        train = 'hider'
         
-
-        
-
-        pH.add_reporter(neat.StdOutReporter(True))
-        statsH = neat.StatisticsReporter()
-        pH.add_reporter(statsH)
-
         winnerHider = pH.run(main, 10)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+
         generation_number += 1
         saver.end_generation(configH, pH, configS, pS)
 
