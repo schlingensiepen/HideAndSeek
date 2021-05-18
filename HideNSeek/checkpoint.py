@@ -20,7 +20,7 @@ class Checkpointer(BaseReporter):
     to save and restore populations (and other aspects of the simulation state).
     """
 
-    def __init__(self, generation_interval=10, time_interval_seconds=300,
+    def __init__(self, generation_interval=40, time_interval_seconds=300,
                  filename_prefix='-neat-checkpoint-'):
         """
         Saves the current state (at the end of a generation) every ``generation_interval`` generations or
@@ -42,7 +42,7 @@ class Checkpointer(BaseReporter):
     def start_generation(self, generation):
         self.current_generation = generation
 
-    def end_generation(self, config, population, config2, population2):
+    def end_generation(self, config, population, species_set, config2, population2, species_set2):
         checkpoint_due = False
 
         if self.time_interval_seconds is not None:
@@ -56,12 +56,12 @@ class Checkpointer(BaseReporter):
                 checkpoint_due = True
 
         if checkpoint_due:
-            self.save_checkpoint(config, population, self.current_generation, 'seeker')
-            self.save_checkpoint(config2, population2, self.current_generation, 'hider')
+            self.save_checkpoint(config, population, species_set,  self.current_generation, 'seeker')
+            self.save_checkpoint(config2, population2, species_set2, self.current_generation, 'hider')
             self.last_generation_checkpoint = self.current_generation
             self.last_time_checkpoint = time.time()
 
-    def save_checkpoint(self, config, population, generation, prefix):
+    def save_checkpoint(self, config, population, species_set, generation, prefix):
         """ Save the current simulation state. """
         filename = '{0}{1}{2}'.format(prefix, self.filename_prefix, generation)
         local_dir = os.path.dirname(__file__)
@@ -69,7 +69,7 @@ class Checkpointer(BaseReporter):
         print("Saving checkpoint to {0}".format(filename))
 
         with gzip.open(full_path, 'wb', compresslevel=5) as f:
-            data = (generation, config, population, random.getstate())
+            data = (generation, config, population, species_set, random.getstate())
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     @staticmethod

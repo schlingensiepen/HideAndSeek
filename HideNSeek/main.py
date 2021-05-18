@@ -1,6 +1,7 @@
 from itertools import cycle
 import random
 import sys
+from neat import species
 import numpy as np
 import os
 import neat
@@ -21,7 +22,7 @@ wHider = None
 train = 'seeker'  # wer trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-49', 'hider-neat-checkpoint-49']
+load_checkpoints = ['seeker-neat-checkpoint-32', 'hider-neat-checkpoint-32']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
@@ -522,7 +523,7 @@ def run(configHider, configSeeker):
     global wHider
     global graphical_mode
     global train
-    generation_number = 0
+    
     configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
                                      configSeeker)
@@ -531,15 +532,17 @@ def run(configHider, configSeeker):
                                      configHider)
     if load_checkpoints:
         print('\nrestoring Checkpoints...')
-        try:      
-            pS = saver.restore_checkpoint(load_checkpoints[0])
-            pH = saver.restore_checkpoint(load_checkpoints[1])
+        try:   
+            seekercheckpoint = saver.restore_checkpoint(load_checkpoints[0])
+            hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
+            pS = seekercheckpoint
+            pH = hidercheckpoint
             print('Checkpoints geladen')
         except:
             print('Checkpoints not found')
             pS = neat.Population(configS)
             pH = neat.Population(configH)
-            print(pS, pH)
+    generation_number = pS.generation
     
     pS.add_reporter(neat.StdOutReporter(True))
     statsS = neat.StatisticsReporter()
@@ -554,20 +557,19 @@ def run(configHider, configSeeker):
         print('\nGeneration: ', generation_number)
 
         # train Seeker
-        saver.start_generation(generation_number)
-        train = 'seeker'      
-        
+        saver.start_generation(pS.generation + 10)
+        train = 'seeker'        
         winnerSeeker = pS.run(main, 10)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
+        
 
         # train Hider
         train = 'hider'
-        
+       
         winnerHider = pH.run(main, 10)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
-
-        generation_number += 1
-        saver.end_generation(configH, pH, configS, pS)
+        generation_number = pS.generation
+        saver.end_generation( pS.config, pS.population, pS.species, pH.config, pH.population, pH.species)
 
     input("Press Enter to continue...")
 
