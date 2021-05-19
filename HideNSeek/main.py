@@ -22,16 +22,16 @@ wHider = None
 train = 'seeker'  # wer trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-32', 'hider-neat-checkpoint-32']
+load_checkpoints = ['seeker-neat-checkpoint-198', 'hider-neat-checkpoint-198']
 
 # spieler können selbst gesteuert werden
-debug_mode = False
+debug_mode = True
 
 # es wird angzeigt, was passiert
 graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
-FPS = 10000
+FPS = 30
 
 saver = Checkpointer()
 
@@ -79,6 +79,35 @@ def move(character):
         return character.x, character.y
 
     return newx, newy
+
+def seethings(character):
+    x = character.x
+    y = character.y
+    #senkrecht
+    dist_up = y
+    dist_down = SCREENHEIGHT - y
+    for obs in obstacles:
+        if  obs.x <= x <= obs.x + obs.width:
+            dist = obs.y - y
+            if dist > 0 and dist < dist_down:
+                dist_down = dist
+            elif dist < 0 and abs(dist) < dist_up:
+                dist_up = abs(dist + obs.height)
+
+    #waagrecht
+    dist_left = x
+    dist_right = SCREENWIDTH - x
+    for obs in obstacles:
+        if  obs.y <= y <= obs.y + obs.height:
+            dist = obs.x - x
+            if dist > 0 and dist < dist_left:
+                dist_left = dist
+            elif dist < 0 and abs(dist) < dist_right:
+                dist_right = abs(dist + obs.width)
+
+    return dist_up, dist_down, dist_left, dist_right
+
+
 
 
 def main(genomes, config):
@@ -217,6 +246,10 @@ def main(genomes, config):
                     a = i[0]
                     nextHiderY = -1
                     nextHiderX = -1
+
+            #lidarlike sicht
+            vision = seethings(seeker)
+            print(vision)
 
             # wenn seeker trainiert wird
             if train == 'seeker':
