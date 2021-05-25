@@ -3,6 +3,7 @@ from sympy import Circle
 class Hider:
     vel = 6
     rotVel = 5
+    seeAngle = 60
 
     playerSurface = None
 

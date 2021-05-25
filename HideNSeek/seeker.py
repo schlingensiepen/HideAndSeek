@@ -16,7 +16,7 @@ class Seeker:
     rotVel = 5
     playerSurface = None
     catchRadius = 200
-    findAngle = 60
+    seeAngle = 60
 
     def __init__(self, x, y):
         self.x = x
@@ -27,26 +27,15 @@ class Seeker:
     
 
 
-    def seeHider(self, hiders, obstacles):
+    def see(self, hiders, obstacles):
         status = []
 
-        for x, hider in enumerate(hiders):
-            hider_circle = hider.draw_circle()
-            deltaX = hider.x - self.x
-            if deltaX == 0:
-                deltaX = 0.0001
-            deltaY = hider.y - self.y
+        for x, hider in enumerate(hiders):  
+            entry = []   
+            entry.append(hider)
             los = True
-            dis = int(np.sqrt(np.square(deltaX) + np.square(deltaY)))
-            angle = int(np.rad2deg(np.arctan(deltaY / deltaX))) - 180
-            angle = abs(angle)
-            angle -= 90
-            if hider.x > self.x:
-                angle += 180
-            difAngle = abs(angle - self.angle)
-
             viewline = ((self.x, self.y), (hider.x, hider.y))
-
+            
             #check if any obstacles block vision
             for obs in obstacles:
                 obs_line = ((obs.x, obs.y + obs.height/2), (obs.x + obs.width, obs.y + obs.height/2))
@@ -55,13 +44,43 @@ class Seeker:
                 if broken_los == True:
                     los = False
                     break
-            # sees and in range
-            if dis < self.catchRadius and min(difAngle, 360 - difAngle) < self.findAngle / 2 and los == True:
-                status.append([x, 0])
-            # sees but not in range
-            elif min(difAngle, 360 - difAngle) < self.findAngle / 2 and los == True:
-                status.append([x, 1])
+
+            if los == True:
+                deltaX = hider.x - self.x
+                if deltaX == 0:
+                    deltaX = 0.0001
+                deltaY = hider.y - self.y
+                dis = int(np.sqrt(np.square(deltaX) + np.square(deltaY)))
+                los_angle = int(np.rad2deg(np.arctan(deltaY / deltaX))) - 180
+                los_angle = abs(los_angle)
+                los_angle -= 90
+                if hider.x > self.x:
+                    los_angle += 180
+
+                difAngle_seeker = abs(los_angle - self.angle)
+
+                # sees and in range
+                if dis < self.catchRadius and min(difAngle_seeker, 360 - difAngle_seeker) < self.seeAngle / 2:
+                    entry.append('seeker_see')
+
+                # sees but not in range
+                elif min(difAngle_seeker, 360 - difAngle_seeker) < self.seeAngle / 2:
+                    entry.append('seeker_seesemi')
+
+                else:
+                    entry.append('seeker_nosee')
+
+                #same for hider
+                hiderangle = hider.angle
+                dif_Angle_hider = abs(los_angle + 180 - hiderangle)
+                if min(dif_Angle_hider, 360 - dif_Angle_hider) < hider.seeAngle / 2:
+                    entry.append('hider_see')
+                else:
+                    entry.append('hider_nosee')
+
+                status.append(entry)
+                   
             # no see
             else:
-                status.append([x, 2])
+                status.append([hider, 'seeker_nosee', 'hider_nosee' ])
             return status

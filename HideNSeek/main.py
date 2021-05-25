@@ -6,6 +6,7 @@ import numpy as np
 import os
 import neat
 import pygame
+import math
 from pygame.locals import *
 from hider import Hider
 from seeker import Seeker
@@ -13,13 +14,8 @@ from obstacle import Obstacle
 from checkpoint import Checkpointer
 
 
-SCREENWIDTH = 800
-SCREENHEIGHT = 800
-SCALING = 1
 
-wSeeker = None
-wHider = None
-train = 'seeker'  # wer trainiert wird
+train = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
 load_checkpoints = ['seeker-neat-checkpoint-198', 'hider-neat-checkpoint-198']
@@ -31,7 +27,14 @@ debug_mode = True
 graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
-FPS = 30
+FPS = 60
+
+SCREENWIDTH = 800
+SCREENHEIGHT = 800
+SCALING = 1
+
+wSeeker = None
+wHider = None
 
 saver = Checkpointer()
 
@@ -46,6 +49,7 @@ blue = (0, 0, 255)
 yellow = (255, 255, 102)
 white = (255, 255, 255)
 black = (0, 0, 0)
+
 
 def obstacle_collision(character, x, y):
     for obs in obstacles:
@@ -80,41 +84,93 @@ def move(character):
 
     return newx, newy
 
+
+
 def seethings(character):
     x = character.x
     y = character.y
+
     #senkrecht
-    dist_up = y
-    dist_down = SCREENHEIGHT - y
+    dist_up_wall = y
+    dist_down_wall = SCREENHEIGHT - y
+    dist_up = dist_up_wall
+    dist_down = dist_down_wall  
     for obs in obstacles:
         if  obs.x <= x <= obs.x + obs.width:
-            dist = obs.y - y
-            if dist > 0 and dist < dist_down:
+            dist = obs.y - y           
+            if dist > 0 and dist < dist_down_wall:
                 dist_down = dist
-            elif dist < 0 and abs(dist) < dist_up:
+            elif dist < 0 and abs(dist) < dist_up_wall:
                 dist_up = abs(dist + obs.height)
 
+
     #waagrecht
-    dist_left = x
-    dist_right = SCREENWIDTH - x
+    dist_left_wall = x
+    dist_right_wall = SCREENWIDTH - x
+    dist_left = dist_left_wall
+    dist_right = dist_right_wall
     for obs in obstacles:
         if  obs.y <= y <= obs.y + obs.height:
             dist = obs.x - x
-            if dist > 0 and dist < dist_left:
+            if dist > 0 and dist < dist_left_wall:
                 dist_left = dist
-            elif dist < 0 and abs(dist) < dist_right:
+            if dist < 0 and abs(dist) < dist_right_wall:
                 dist_right = abs(dist + obs.width)
 
+    obs_point = None
+    #schräg aufsteigend
+    if SCREENHEIGHT - y < x:
+        dist_lowleft = math.sqrt(2) * dist_down_wall
+    else:
+        dist_lowleft = math.sqrt(2) * dist_left_wall
+       
+    if y < SCREENWIDTH - x:
+        dist_upright = math.sqrt(2) * dist_up_wall
+    else:
+        dist_upright = math.sqrt(2) * dist_right_wall
+
+   
+    for obs in obstacles:       
+        dist_x = obs.x - x
+        dist_y = obs.y - y
+        if abs(dist_x) < abs(dist_y):
+            shorterdist = abs(dist_x)
+        else:
+            shorterdist = abs(dist_y)
+        #unten rechts
+        if math.sqrt(2) *shorterdist < dist_lowleft:
+            if dist_x < 0 and dist_y > 0:
+                obs_point = [int(x - shorterdist), int(y + shorterdist)]
+                if obs.x <= obs_point[0] <= obs.x + obs.width and obs_point[1] == obs.y:
+                    dist_lowleft = math.sqrt(2) * shorterdist
+                    print('hitting obstacle', dist_lowleft)
+                elif obs.y <= obs_point[1] <= obs.y + obs.height and obs_point[0] == obs.x + obs.width:
+                    print('hitted rechte seite')
+
+            
+        
+    
+
+
+    '''
+    vision_line = ((x,y), (x - SCREENWIDTH, y + SCREENHEIGHT))
+    obs_line = ((obs.x, obs.y + obs.height/2),(obs.x + obs.width, obs.y + obs.height/2))
+    intersection = intersect(obs_line, vision_line)
+    '''
+        
+
+
+
+
+
+    return obs_point, [dist_lowleft, dist_upright]
     return dist_up, dist_down, dist_left, dist_right
 
 
 
 
 def main(genomes, config):
-    
-
-    
-
+      
     if graphical_mode:
         global SCREEN, FPSCLOCK
         pygame.init()
@@ -153,6 +209,8 @@ def main(genomes, config):
     nets = []
     ge = []
     trainNets = []
+    seeker_los_color = red
+    hider_los_color = red
 
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
@@ -208,20 +266,19 @@ def main(genomes, config):
                 event = False
 
             # see hiders
-            see = False
+            
             nextHiderX = -1
             nextHiderY = -1
 
             # prüft was gesehen wird
-            status = seeker.seeHider(hiders, obstacles)
-            for i in status:
-
-                # see
-                if i[1] == 0:
-                    see = green
-                    a = i[0]
-                    nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x
+            status = seeker.see(hiders, obstacles)
+            for sublist in status:
+                hider = sublist[0]
+                # seeker sees
+                if sublist[1] == 'seeker_see':
+                    seeker_los_color = green
+                    nextHiderY = hider.y
+                    nextHiderX = hider.x
                     if train == 'seeker':
                         ge[x].fitness += 2000
                     else:
@@ -229,34 +286,41 @@ def main(genomes, config):
                     run = False
                     print('hider gefunden')
 
-                # see semi
-                elif i[1] == 1:
-                    see = yellow
-                    a = i[0]
-                    nextHiderY = hiders[a].y
-                    nextHiderX = hiders[a].x
+                # seeker sees semi
+                elif sublist[1] == 'seeker_seesemi':
+                    seeker_los_color = yellow                   
+                    nextHiderY = hider.y
+                    nextHiderX = hider.x
                     if train == 'seeker':
                         ge[x].fitness += 1
                     else:
                         ge[x].fitness -= 1
-
-                # no see
-                elif i[1] == 2:
-                    see = red
-                    a = i[0]
+                # seeker does not see
+                else:
+                    seeker_los_color = red
                     nextHiderY = -1
                     nextHiderX = -1
 
+
+                if sublist[2] == 'hider_see':
+                    hider_los_color = yellow
+                    nextSeekerX = seeker.x
+                    nextSeekerY = seeker.y
+                else:
+                    hider_los_color = red
+                    nextSeekerX = -1
+                    nextSeekerY = -1
+
             #lidarlike sicht
-            vision = seethings(seeker)
-            print(vision)
+            #debugpoints, vision = seethings(seeker)
+            #print(vision)
 
             # wenn seeker trainiert wird
             if train == 'seeker':
                 if wHider == None:
                     outputHider = [0, 0]
                 else:
-                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seeker.angle, seeker.x, seeker.y))
+                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seeker.angle, nextSeekerX, nextSeekerY))
 
                 outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
 
@@ -266,7 +330,7 @@ def main(genomes, config):
                     outputSeeker = [0, 0]
                 else:
                     outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
-                outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seeker.angle, seeker.x, seeker.y))
+                outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seeker.angle, nextSeekerX, nextSeekerY))
 
             # manuelle Steuerung
 
@@ -297,7 +361,7 @@ def main(genomes, config):
                     hider.angle += 360
 
                 # Movement durch KI
-                # Seeker
+
             else:
                 # Seeker
                 if outputSeeker[0] > 0.5:
@@ -369,8 +433,16 @@ def main(genomes, config):
                 newy = seeker.y - np.cos(np.deg2rad(seeker.angle)) * seeker.radius
                 pygame.draw.circle(SCREEN, white, [newx, newy], 5)
 
-                # line of sight visualsisazion
-                pygame.draw.line(SCREEN, see, [seeker.x, seeker.y], [hider.x, hider.y], 2)
+                # line of sight
+                deltaX = hider.x - seeker.x
+                deltaY = hider.y - seeker.y
+                los_middle = [seeker.x + deltaX/2, seeker.y + deltaY/2]
+                pygame.draw.line(SCREEN, seeker_los_color, [seeker.x, seeker.y], los_middle, 2)
+                pygame.draw.line(SCREEN, hider_los_color, [hider.x, hider.y], los_middle, 2)
+
+                #vision
+                #if debugpoints != None:
+                 #   pygame.draw.line(SCREEN, blue, [seeker.x, seeker.y], [debugpoints[0], debugpoints[1]], 2)
 
                 # obstacles
                 for obstacle in obstacles:
@@ -395,7 +467,7 @@ def main(genomes, config):
                 ge[x].fitness += 1
             # print(ge[x].fitness)
 
-
+'''
 def visResult():
     score = loopIter = 0
 
@@ -449,7 +521,7 @@ def visResult():
         nextHiderX = -1
         nextHiderY = -1
         minDis = 100000
-        status = seeker.seeHider(hiders, obstacles)
+        status = seeker.see(hiders, obstacles)
         for i in status:
 
             # see
@@ -538,7 +610,7 @@ def visResult():
 
         # sight visualsisazion
 
-        pygame.draw.line(SCREEN, see, [seeker.x, seeker.y], [hider.x, hider.y], 2)
+        pygame.draw.line(SCREEN, los_color, [seeker.x, seeker.y], [hider.x, hider.y], 2)
 
         for obstacle in obstacles:
             pygame.draw.rect(SCREEN, black, [obstacle.x, obstacle.y, obstacle.width, obstacle.height])
@@ -549,7 +621,7 @@ def visResult():
         # print(ge[x].fitness)
 
         FPSCLOCK.tick(FPS)
-
+'''
 
 def run(configHider, configSeeker):
     global wSeeker
@@ -606,7 +678,7 @@ def run(configHider, configSeeker):
 
     input("Press Enter to continue...")
 
-    visResult()
+    #visResult()
 
 
 if __name__ == '__main__':
