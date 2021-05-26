@@ -21,7 +21,7 @@ train = 'seeker'  # wer zuerst trainiert wird
 load_checkpoints = ['seeker-neat-checkpoint-198', 'hider-neat-checkpoint-198']
 
 # spieler können selbst gesteuert werden
-debug_mode = True
+debug_mode = False
 
 # es wird angzeigt, was passiert
 graphical_mode = True
@@ -252,7 +252,7 @@ def main(genomes, config):
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
-        g.fitness = 2100
+        g.fitness = 20000
         if train == 'seeker':
             seeker = Seeker(400, 400)
             trainNets.append(seeker)
@@ -351,7 +351,7 @@ def main(genomes, config):
 
             #lidarlike sicht
             debugpoints, vision = seethings(seeker)
-            print(vision)
+            #print(vision)
 
             # wenn seeker trainiert wird
             if train == 'seeker':
@@ -504,6 +504,7 @@ def main(genomes, config):
                 ge[x].fitness -= 1
             else:
                 ge[x].fitness += 1
+            print(ge[x].fitness)
             # print(ge[x].fitness)
 
 '''
@@ -697,27 +698,24 @@ def run(configHider, configSeeker):
     pH.add_reporter(statsH)
 
 
-    for i in range(200):
+    while True:
         print('\nGeneration: ', generation_number)
 
         # train Seeker
         saver.start_generation(pS.generation + 10)
         train = 'seeker'        
-        winnerSeeker = pS.run(main, 10)
+        winnerSeeker = pS.run(main, 25)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
         
 
         # train Hider
         train = 'hider'
        
-        winnerHider = pH.run(main, 10)
+        winnerHider = pH.run(main, 25)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
         generation_number = pS.generation
         saver.end_generation( pS.config, pS.population, pS.species, pH.config, pH.population, pH.species)
 
-    input("Press Enter to continue...")
-
-    #visResult()
 
 
 if __name__ == '__main__':
