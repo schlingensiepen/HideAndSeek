@@ -92,7 +92,9 @@ def seethings(character):
 
     #senkrecht
     dist_up_wall = y
-    dist_down_wall = SCREENHEIGHT - y
+    dist_down_wall = SCREENHEIGHT - y#
+    uppoint = (x, 0)
+    downpoint = (x, SCREENHEIGHT)
     dist_up = dist_up_wall
     dist_down = dist_down_wall  
     for obs in obstacles:
@@ -100,36 +102,44 @@ def seethings(character):
             dist = obs.y - y           
             if dist > 0 and dist < dist_down_wall:
                 dist_down = dist
+                downpoint = (x, obs.y)
             elif dist < 0 and abs(dist) < dist_up_wall:
                 dist_up = abs(dist + obs.height)
-
+                uppoint = (x, obs.y + obs.height)
 
     #waagrecht
     dist_left_wall = x
     dist_right_wall = SCREENWIDTH - x
+    leftpoint = (0, y)
+    rightpoint = (SCREENWIDTH, y)
     dist_left = dist_left_wall
     dist_right = dist_right_wall
     for obs in obstacles:
         if  obs.y <= y <= obs.y + obs.height:
             dist = obs.x - x
-            if dist > 0 and dist < dist_left_wall:
+            if dist < 0 and dist < dist_left_wall:
                 dist_left = dist
-            if dist < 0 and abs(dist) < dist_right_wall:
+                leftpoint = (obs.x + obs.width, y)
+            if dist > 0 and abs(dist) < dist_right_wall:
                 dist_right = abs(dist + obs.width)
-
-    obs_point = None
+                rightpoint = (obs.x, y)
+  
     #schräg aufsteigend
     if SCREENHEIGHT - y < x:
         dist_lowleft = math.sqrt(2) * dist_down_wall
+        lowleftpoint = [x - dist_down_wall, y + dist_down_wall]
     else:
         dist_lowleft = math.sqrt(2) * dist_left_wall
+        lowleftpoint = [x - dist_left_wall, y + dist_left_wall]
        
     if y < SCREENWIDTH - x:
         dist_upright = math.sqrt(2) * dist_up_wall
+        uprightpoint = [x + dist_up_wall, y - dist_up_wall]
     else:
         dist_upright = math.sqrt(2) * dist_right_wall
+        uprightpoint = [x + dist_right_wall, y - dist_right_wall]
 
-   
+
     for obs in obstacles:       
         dist_x = obs.x - x
         dist_y = obs.y - y
@@ -137,15 +147,46 @@ def seethings(character):
             shorterdist = abs(dist_x)
         else:
             shorterdist = abs(dist_y)
-        #unten rechts
-        if math.sqrt(2) *shorterdist < dist_lowleft:
-            if dist_x < 0 and dist_y > 0:
-                obs_point = [int(x - shorterdist), int(y + shorterdist)]
-                if obs.x <= obs_point[0] <= obs.x + obs.width and obs_point[1] == obs.y:
+
+        #unten links
+        #ist das Hindernis links unten, vom char aus gesehen?
+        if dist_x < 0 and dist_y > 0:
+
+            #wäre der zu rechnende Punkt überhaupt näher?
+            if math.sqrt(2) * shorterdist < dist_lowleft:
+                obs_point_waagrecht = [x - dist_y, obs.y]
+                obs_point_senkrecht = [obs.x + obs.width, y - (dist_x + obs.width)]
+
+                #trifft die Linie auf die nahe, waagrechte Seite des hindernisses?
+                if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
                     dist_lowleft = math.sqrt(2) * shorterdist
-                    print('hitting obstacle', dist_lowleft)
-                elif obs.y <= obs_point[1] <= obs.y + obs.height and obs_point[0] == obs.x + obs.width:
-                    print('hitted rechte seite')
+                    lowleftpoint = obs_point_waagrecht
+
+                #trifft die Linie auf die nahe, seknrechte Seite des hindernisses?                
+                elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
+                    dist_lowleft = math.sqrt(2) * shorterdist
+                    lowleftpoint = obs_point_senkrecht
+            
+        #oben rechts
+        if dist_x > 0 and dist_y < 0:
+
+            if math.sqrt(2) * shorterdist < dist_upright:
+                obs_point_waagrecht = [x - dist_y - obs.height, obs.y + obs.height]
+                obs_point_senkrecht = [obs.x, y - dist_x]
+                
+                if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
+                    dist_upright = math.sqrt(2) * shorterdist
+                    uprightpoint = obs_point_waagrecht
+
+                elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
+                    dist_upright = math.sqrt(2) * shorterdist
+                    uprightpoint = obs_point_senkrecht
+                
+                    
+
+
+
+                   
 
             
         
@@ -163,8 +204,8 @@ def seethings(character):
 
 
 
-    return obs_point, [dist_lowleft, dist_upright]
-    return dist_up, dist_down, dist_left, dist_right
+    return [uppoint, downpoint, leftpoint, rightpoint, lowleftpoint, uprightpoint], [dist_up, dist_down, dist_left, dist_right, dist_lowleft, dist_upright]
+    #return dist_up, dist_down, dist_left, dist_right
 
 
 
@@ -277,6 +318,7 @@ def main(genomes, config):
                 # seeker sees
                 if sublist[1] == 'seeker_see':
                     seeker_los_color = green
+                    hider_los_color = green
                     nextHiderY = hider.y
                     nextHiderX = hider.x
                     if train == 'seeker':
@@ -312,7 +354,7 @@ def main(genomes, config):
                     nextSeekerY = -1
 
             #lidarlike sicht
-            #debugpoints, vision = seethings(seeker)
+            debugpoints, vision = seethings(seeker)
             #print(vision)
 
             # wenn seeker trainiert wird
@@ -441,8 +483,9 @@ def main(genomes, config):
                 pygame.draw.line(SCREEN, hider_los_color, [hider.x, hider.y], los_middle, 2)
 
                 #vision
-                #if debugpoints != None:
-                 #   pygame.draw.line(SCREEN, blue, [seeker.x, seeker.y], [debugpoints[0], debugpoints[1]], 2)
+                if debugpoints[0]:
+                    for point in debugpoints:
+                        pygame.draw.line(SCREEN, blue, [seeker.x, seeker.y], [point[0], point[1]])
 
                 # obstacles
                 for obstacle in obstacles:
