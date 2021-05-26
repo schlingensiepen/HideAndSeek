@@ -85,14 +85,14 @@ def move(character):
     return newx, newy
 
 
-
+#vision, bestehend aus 8 'Strahlen'
 def seethings(character):
     x = character.x
     y = character.y
 
     #senkrecht
     dist_up_wall = y
-    dist_down_wall = SCREENHEIGHT - y#
+    dist_down_wall = SCREENHEIGHT - y
     uppoint = (x, 0)
     downpoint = (x, SCREENHEIGHT)
     dist_up = dist_up_wall
@@ -100,10 +100,10 @@ def seethings(character):
     for obs in obstacles:
         if  obs.x <= x <= obs.x + obs.width:
             dist = obs.y - y           
-            if dist > 0 and dist < dist_down_wall:
+            if dist > 0 and dist < dist_down:
                 dist_down = dist
                 downpoint = (x, obs.y)
-            elif dist < 0 and abs(dist) < dist_up_wall:
+            elif dist < 0 and abs(dist) < dist_up:
                 dist_up = abs(dist + obs.height)
                 uppoint = (x, obs.y + obs.height)
 
@@ -117,27 +117,43 @@ def seethings(character):
     for obs in obstacles:
         if  obs.y <= y <= obs.y + obs.height:
             dist = obs.x - x
-            if dist < 0 and dist < dist_left_wall:
-                dist_left = dist
+            if dist < 0 and dist < dist_left:
+                dist_left = abs(dist) - obs.width
                 leftpoint = (obs.x + obs.width, y)
-            if dist > 0 and abs(dist) < dist_right_wall:
-                dist_right = abs(dist + obs.width)
+            if dist > 0 and abs(dist) < dist_right:
+                dist_right = abs(dist)
                 rightpoint = (obs.x, y)
   
     #schräg aufsteigend
     if SCREENHEIGHT - y < x:
         dist_lowleft = math.sqrt(2) * dist_down_wall
-        lowleftpoint = [x - dist_down_wall, y + dist_down_wall]
+        lowleftpoint = (x - dist_down_wall, y + dist_down_wall)
     else:
         dist_lowleft = math.sqrt(2) * dist_left_wall
-        lowleftpoint = [x - dist_left_wall, y + dist_left_wall]
+        lowleftpoint = (x - dist_left_wall, y + dist_left_wall)
        
     if y < SCREENWIDTH - x:
         dist_upright = math.sqrt(2) * dist_up_wall
-        uprightpoint = [x + dist_up_wall, y - dist_up_wall]
+        uprightpoint = (x + dist_up_wall, y - dist_up_wall)
     else:
         dist_upright = math.sqrt(2) * dist_right_wall
-        uprightpoint = [x + dist_right_wall, y - dist_right_wall]
+        uprightpoint = (x + dist_right_wall, y - dist_right_wall)
+
+    #schräg fallend
+    if x < y:
+        dist_upleft = math.sqrt(2) * dist_left_wall
+        upleftpoint = (x - dist_left_wall, y - dist_left_wall)
+    else:
+        dist_upleft = math.sqrt(2) * dist_up_wall
+        upleftpoint = (x - dist_up_wall, y - dist_up_wall)
+
+    if SCREENWIDTH - x < SCREENHEIGHT - y:
+        print('true')
+        dist_lowright = math.sqrt(2) * dist_right_wall
+        lowrightpoint = (x + dist_right_wall, y + dist_right_wall)
+    else:
+        dist_lowright = math.sqrt(2) * dist_down_wall
+        lowrightpoint = (x + dist_down_wall, y + dist_down_wall)
 
 
     for obs in obstacles:       
@@ -168,7 +184,7 @@ def seethings(character):
                     lowleftpoint = obs_point_senkrecht
             
         #oben rechts
-        if dist_x > 0 and dist_y < 0:
+        if dist_x + obs.width > 0 and dist_y < 0:
 
             if math.sqrt(2) * shorterdist < dist_upright:
                 obs_point_waagrecht = [x - dist_y - obs.height, obs.y + obs.height]
@@ -182,30 +198,10 @@ def seethings(character):
                     dist_upright = math.sqrt(2) * shorterdist
                     uprightpoint = obs_point_senkrecht
                 
-                    
+                               
 
+    return [uppoint, downpoint, leftpoint, rightpoint, lowleftpoint, uprightpoint, upleftpoint, lowrightpoint], [dist_up, dist_down, dist_left, dist_right, int(dist_lowleft), int(dist_upright), int(dist_upleft), int(dist_lowright)]
 
-
-                   
-
-            
-        
-    
-
-
-    '''
-    vision_line = ((x,y), (x - SCREENWIDTH, y + SCREENHEIGHT))
-    obs_line = ((obs.x, obs.y + obs.height/2),(obs.x + obs.width, obs.y + obs.height/2))
-    intersection = intersect(obs_line, vision_line)
-    '''
-        
-
-
-
-
-
-    return [uppoint, downpoint, leftpoint, rightpoint, lowleftpoint, uprightpoint], [dist_up, dist_down, dist_left, dist_right, dist_lowleft, dist_upright]
-    #return dist_up, dist_down, dist_left, dist_right
 
 
 
@@ -355,7 +351,7 @@ def main(genomes, config):
 
             #lidarlike sicht
             debugpoints, vision = seethings(seeker)
-            #print(vision)
+            print(vision)
 
             # wenn seeker trainiert wird
             if train == 'seeker':
