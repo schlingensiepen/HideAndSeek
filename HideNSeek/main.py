@@ -318,9 +318,9 @@ def main(genomes, config):
                     nextHiderY = hider.y
                     nextHiderX = hider.x
                     if train == 'seeker':
-                        ge[x].fitness += 2000
+                        ge[x].fitness += 20000
                     else:
-                        ge[x].fitness -= 2000
+                        ge[x].fitness -= 20000
                     run = False
                     print('hider gefunden')
 
