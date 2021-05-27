@@ -148,7 +148,6 @@ def seethings(character):
         upleftpoint = (x - dist_up_wall, y - dist_up_wall)
 
     if SCREENWIDTH - x < SCREENHEIGHT - y:
-        print('true')
         dist_lowright = math.sqrt(2) * dist_right_wall
         lowrightpoint = (x + dist_right_wall, y + dist_right_wall)
     else:
@@ -197,6 +196,18 @@ def seethings(character):
                 elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
                     dist_upright = math.sqrt(2) * shorterdist
                     uprightpoint = obs_point_senkrecht
+        '''
+        #oben links
+        if dist_x < 0 and dist_y < 0:
+
+            if math.sqrt(2) * shorterdist < dist_upleft:
+                obs_point_waagrecht = [x + dist_y - obs.height, obs.y + obs.height]
+                obs_point_senkrecht = [obs.x + obs.width, y - dist_x + obs.width]
+
+                if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
+                        dist_upleft = math.sqrt(2) * shorterdist
+                        dist_upleft = obs_point_waagrecht
+'''
                 
                                
 
