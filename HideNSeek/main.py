@@ -396,7 +396,6 @@ def main(genomes, config):
                     outputHider = [0, 0]
                 else:
                     outputHider = wHider.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
-
                 outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
 
             # wenn hider trainiert wird
