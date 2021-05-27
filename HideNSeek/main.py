@@ -21,7 +21,7 @@ train = 'seeker'  # wer zuerst trainiert wird
 load_checkpoints = ['seeker-neat-checkpoint-198', 'hider-neat-checkpoint-198']
 
 # spieler können selbst gesteuert werden
-debug_mode = False
+debug_mode = True
 
 # es wird angzeigt, was passiert
 graphical_mode = True
@@ -190,28 +190,47 @@ def seethings(character):
                 obs_point_senkrecht = [obs.x, y - dist_x]
                 
                 if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
-                    dist_upright = math.sqrt(2) * shorterdist
+                    dist_upright = math.sqrt(2) * (shorterdist - obs.height)
                     uprightpoint = obs_point_waagrecht
 
                 elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
-                    dist_upright = math.sqrt(2) * shorterdist
+                    dist_upright = math.sqrt(2) * (shorterdist - obs.height)
                     uprightpoint = obs_point_senkrecht
-        '''
+        
         #oben links
         if dist_x < 0 and dist_y < 0:
 
             if math.sqrt(2) * shorterdist < dist_upleft:
-                obs_point_waagrecht = [x + dist_y - obs.height, obs.y + obs.height]
-                obs_point_senkrecht = [obs.x + obs.width, y - dist_x + obs.width]
+                obs_point_waagrecht = [x + dist_y + obs.height, obs.y + obs.height]
+                obs_point_senkrecht = [obs.x + obs.width, y + dist_x + obs.width]
 
                 if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
-                        dist_upleft = math.sqrt(2) * shorterdist
-                        dist_upleft = obs_point_waagrecht
-'''
+                    dist_upleft = math.sqrt(2) * (shorterdist - obs.height)
+                    upleftpoint = obs_point_waagrecht
                 
-                               
+                elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
+                    dist_upleft = math.sqrt(2) * (shorterdist - obs.height)
+                    upleftpoint = obs_point_senkrecht
 
-    return [uppoint, downpoint, leftpoint, rightpoint, lowleftpoint, uprightpoint, upleftpoint, lowrightpoint], [dist_up, dist_down, dist_left, dist_right, int(dist_lowleft), int(dist_upright), int(dist_upleft), int(dist_lowright)]
+        #unten rechts
+        if dist_x + obs.width > 0 and dist_y > 0:
+
+            if math.sqrt(2) * shorterdist < dist_lowright:
+                obs_point_waagrecht = [x + dist_y, obs.y]
+                obs_point_senkrecht = [obs.x, y + dist_x]
+
+                if obs.x <= obs_point_waagrecht[0] <= obs.x + obs.width:
+                    dist_lowright = math.sqrt(2) * shorterdist
+                    lowrightpoint = obs_point_waagrecht
+                
+                elif obs.y <= obs_point_senkrecht[1] <= obs.y + obs.height:
+                    dist_lowright = math.sqrt(2) * shorterdist
+                    lowrightpoint = obs_point_senkrecht
+                          
+    pointslist = [uppoint, downpoint, leftpoint, rightpoint, lowleftpoint, uprightpoint, upleftpoint, lowrightpoint]
+    distlist = [dist_up, dist_down, dist_left, dist_right, int(dist_lowleft), int(dist_upright), int(dist_upleft), int(dist_lowright)]
+
+    return pointslist, distlist
 
 
 
@@ -515,7 +534,6 @@ def main(genomes, config):
                 ge[x].fitness -= 1
             else:
                 ge[x].fitness += 1
-            print(ge[x].fitness)
             # print(ge[x].fitness)
 
 '''
