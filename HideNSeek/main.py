@@ -339,6 +339,8 @@ def main(genomes, config):
 
             # prüft was gesehen wird
             status = seeker.see(hiders, obstacles)
+            hiderangle = -1
+            seekerangle = -1
             for sublist in status:
                 hider = sublist[0]
                 # seeker sees
@@ -347,6 +349,7 @@ def main(genomes, config):
                     hider_los_color = green
                     nextHiderY = hider.y
                     nextHiderX = hider.x
+                    hiderangle = hider.angle
                     if train == 'seeker':
                         ge[x].fitness += 20000
                     else:
@@ -359,6 +362,7 @@ def main(genomes, config):
                     seeker_los_color = yellow                   
                     nextHiderY = hider.y
                     nextHiderX = hider.x
+                    hiderangle = hider.angle
                     if train == 'seeker':
                         ge[x].fitness += 1
                     else:
@@ -369,17 +373,20 @@ def main(genomes, config):
                     nextHiderY = -1
                     nextHiderX = -1
 
-
+                #hider see
                 if sublist[2] == 'hider_see':
                     hider_los_color = yellow
                     nextSeekerX = seeker.x
                     nextSeekerY = seeker.y
+                    seekerangle = seeker.angle
+                #hider nosee
                 else:
                     hider_los_color = red
                     nextSeekerX = -1
                     nextSeekerY = -1
 
             #lidarlike sicht
+            debugpoints = []
             debugpoints, vision = seethings(seeker)
             #print(vision)
 
@@ -388,17 +395,17 @@ def main(genomes, config):
                 if wHider == None:
                     outputHider = [0, 0]
                 else:
-                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seeker.angle, nextSeekerX, nextSeekerY))
+                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
 
-                outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
+                outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
 
             # wenn hider trainiert wird
             else:
                 if wSeeker == None:
                     outputSeeker = [0, 0]
                 else:
-                    outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, nextHiderX, nextHiderY))
-                outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seeker.angle, nextSeekerX, nextSeekerY))
+                    outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
+                outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
 
             # manuelle Steuerung
 
@@ -509,7 +516,7 @@ def main(genomes, config):
                 pygame.draw.line(SCREEN, hider_los_color, [hider.x, hider.y], los_middle, 2)
 
                 #vision
-                if debugpoints[0]:
+                if debugpoints:
                     for point in debugpoints:
                         pygame.draw.line(SCREEN, blue, [seeker.x, seeker.y], [point[0], point[1]])
 
