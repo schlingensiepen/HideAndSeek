@@ -18,7 +18,7 @@ from checkpoint import Checkpointer
 train = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-29500', 'hider-neat-checkpoint-29500']
+load_checkpoints = ['seeker-neat-checkpoint-719', 'hider-neat-checkpoint-719']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
@@ -27,7 +27,7 @@ debug_mode = False
 graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
-FPS = 60
+FPS = 100
 
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
@@ -232,12 +232,17 @@ def seethings(character):
 
     return pointslist, distlist
 
+def main_seeker(seekergenomes, seekerconfig):
+    wSeeker = main(seekergenomes, seekerconfig)
+    return wSeeker
 
-
+def main_hider(hidergenomes, hiderconfig):
+    wHider = main(hidergenomes, hiderconfig)
+    return wHider
 
 
 def main(genomes, config):
-      
+ 
     if graphical_mode:
         global SCREEN, FPSCLOCK
         pygame.init()
@@ -255,17 +260,15 @@ def main(genomes, config):
 
     hiders = []
     seekers = []
-
+    
     if train == 'seeker':
         for i in range(1):
-            hider = Hider(200, 60)
-            hiders.append(hider)
+            hider = Hider()
 
     if train == 'hider':
         for i in range(1):
-            seeker = Seeker(400, 400)
-            seekers.append(seeker)
-
+            seeker = Seeker()
+    
     obstacles.clear()
     for i in range(3):
         obs = Obstacle(np.random.randint(0, SCREENWIDTH - Obstacle.width),
@@ -273,29 +276,26 @@ def main(genomes, config):
         obstacles.append(obs)
    
 
-    nets = []
-    ge = []
-    trainNets = []
+
     seeker_los_color = red
     hider_los_color = red
 
-    for _, g in genomes:
-        net = neat.nn.FeedForwardNetwork.create(g, config)
-        nets.append(net)
-        g.fitness = 20000
-        if train == 'seeker':
-            seeker = Seeker(400, 400)
-            trainNets.append(seeker)
-        else:
-            hider = Hider(60, 60)
-            trainNets.append(hider)
-            hiders = [hider]
-        ge.append(g)
+    for genome_id, genome in genomes:
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    for x, trained in enumerate(trainNets):
+        genome.fitness = 20000
+ 
+        if train == 'seeker':
+            seeker = Seeker()
+
+        else:
+            hider = Hider()
+
         loopIter = 0
         run = True
 
+        #Spieler sollen nicht in Hindernissen spawnen (funktion fraglich)
+        #setzt aber auf jeden fall eine zufällige Position
         hider_in_obstacle = True
         while hider_in_obstacle == True:
             hider.x = np.random.randint(hider.radius, SCREENWIDTH - hider.radius)
@@ -314,29 +314,18 @@ def main(genomes, config):
         #Gameloop
         while run:
 
-            if train == 'seeker':
-                seeker = trained
-                hider = hiders[0]
-            else:
-                seeker = seekers[0]
-                hider = trained
-
             if graphical_mode:
                 for event in pygame.event.get():
                     if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                         pygame.quit()
                         run = False
                         sys.exit()
-
-                
+               
             else:
                 event = False
 
-            # see hiders
-            
-            nextHiderX = -1
-            nextHiderY = -1
-
+            # who sees who
+            hiders = [hider]
             # prüft was gesehen wird
             status = seeker.see(hiders, obstacles)
             hiderangle = -1
@@ -351,9 +340,9 @@ def main(genomes, config):
                     nextHiderX = hider.x
                     hiderangle = hider.angle
                     if train == 'seeker':
-                        ge[x].fitness += 20000
+                        genome.fitness += 20000
                     else:
-                        ge[x].fitness -= 20000
+                        genome.fitness -= 20000
                     run = False
                     print('hider gefunden')
 
@@ -364,9 +353,9 @@ def main(genomes, config):
                     nextHiderX = hider.x
                     hiderangle = hider.angle
                     if train == 'seeker':
-                        ge[x].fitness += 1
+                        genome.fitness += 1
                     else:
-                        ge[x].fitness -= 1
+                        genome.fitness -= 1
                 # seeker does not see
                 else:
                     seeker_los_color = red
@@ -396,7 +385,7 @@ def main(genomes, config):
                     outputHider = [0, 0]
                 else:
                     outputHider = wHider.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
-                outputSeeker = nets[x].activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
+                outputSeeker = net.activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
 
             # wenn hider trainiert wird
             else:
@@ -404,7 +393,7 @@ def main(genomes, config):
                     outputSeeker = [0, 0]
                 else:
                     outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
-                outputHider = nets[x].activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
+                outputHider = net.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
 
             # manuelle Steuerung
 
@@ -440,19 +429,19 @@ def main(genomes, config):
                 # Seeker
                 if outputSeeker[0] > 0.5:
                     seeker.angle = seeker.angle + seeker.rotVel
-                    ge[x].fitness += 0.1
+                    genome.fitness += 0.1
                 if outputSeeker[1] > 0.5:
                     seeker.angle = seeker.angle - seeker.rotVel
-                    ge[x].fitness += 0.1
+                    genome.fitness += 0.1
                 if seeker.angle >= 360:
                     seeker.angle -= 360
                 if seeker.angle <= 0:
                     seeker.angle += 360
                 nSeekerx, nSeekery = move(seeker)
-                ge[x].fitness += 0.1
+                genome.fitness += 0.1
                 if nSeekerx == seeker.x and nSeekery == seeker.y:
                     if train == 'seeker':
-                        ge[x].fitness -= 100
+                        genome.fitness -= 100
                         loopIter += 30
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
@@ -472,7 +461,7 @@ def main(genomes, config):
 
                 if nHiderx == hider.x and nHidery == hider.y:
                     if train == 'hider':
-                        ge[x].fitness -= 100
+                        genome.fitness -= 100
                         loopIter += 30
                 hider.x = nHiderx
                 hider.y = nHidery
@@ -531,9 +520,9 @@ def main(genomes, config):
                 run = False
 
             if train == 'seeker':
-                ge[x].fitness -= 1
+                genome.fitness -= 1
             else:
-                ge[x].fitness += 1
+                genome.fitness += 1
             # print(ge[x].fitness)
 
 '''
@@ -692,7 +681,7 @@ def visResult():
         FPSCLOCK.tick(FPS)
 '''
 
-def run(configHider, configSeeker):
+def train(configFileSeeker, configFileHider):
     global wSeeker
     global wHider
     global graphical_mode
@@ -706,18 +695,20 @@ def run(configHider, configSeeker):
             hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
             pS = seekercheckpoint
             pH = hidercheckpoint
+            configS = pS.config
+            configH = pH.config
             print('Checkpoints geladen')
         except:
             print('Checkpoints not found')
-            configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+            configS = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configSeeker)
-            configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     configFileSeeker)
+            configH = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configHider)            
+                                     configFileHider)            
             pS = neat.Population(configS)
             pH = neat.Population(configH)
-    generation_number = pS.generation
+    
     
     pS.add_reporter(neat.StdOutReporter(True))
     statsS = neat.StatisticsReporter()
@@ -727,20 +718,20 @@ def run(configHider, configSeeker):
     statsH = neat.StatisticsReporter()
     pH.add_reporter(statsH)
 
-
+    #loop für abwechselndes trainieren
     while True:
       
         saver.start_generation(pS.generation)
 
         # train Seeker
         train = 'seeker'        
-        winnerSeeker = pS.run(main, 1)
+        winnerSeeker = pS.run(main_seeker, 1)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
         
 
         # train Hider
         train = 'hider'      
-        winnerHider = pH.run(main, 1)
+        winnerHider = pH.run(main_hider, 1)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
 
         saver.end_generation( pS.config, pS.population, pS.species, pH.config, pH.population, pH.species)
@@ -749,6 +740,6 @@ def run(configHider, configSeeker):
 
 if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
-    config_pathHider = os.path.join(local_dir, 'configHider.txt')
     config_pathSeeker = os.path.join(local_dir, 'configSeeker.txt')
-    run(config_pathHider, config_pathSeeker)
+    config_pathHider = os.path.join(local_dir, 'configHider.txt')
+    train(config_pathSeeker, config_pathHider)

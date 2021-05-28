@@ -7,7 +7,7 @@ class Hider:
 
     playerSurface = None
 
-    def __init__(self, x, y):
+    def __init__(self, x = 200, y = 200):
         self.x = x
         self.y = y
         self.angle = 270

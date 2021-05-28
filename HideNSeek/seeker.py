@@ -18,7 +18,7 @@ class Seeker:
     catchRadius = 200
     seeAngle = 60
 
-    def __init__(self, x, y):
+    def __init__(self, x = 400, y = 400):
         self.x = x
         self.y = y
         self.angle = 90
