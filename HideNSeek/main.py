@@ -18,10 +18,10 @@ from checkpoint import Checkpointer
 train = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-198', 'hider-neat-checkpoint-198']
+load_checkpoints = ['seeker-neat-checkpoint-29500', 'hider-neat-checkpoint-29500']
 
 # spieler können selbst gesteuert werden
-debug_mode = True
+debug_mode = False
 
 # es wird angzeigt, was passiert
 graphical_mode = True
@@ -454,7 +454,6 @@ def main(genomes, config):
                     if train == 'seeker':
                         ge[x].fitness -= 100
                         loopIter += 30
-                  #  run = False
                 seeker.x = nSeekerx
                 seeker.y = nSeekery
 
@@ -530,12 +529,7 @@ def main(genomes, config):
             if loopIter >= 5000:
                 print('Zeit abgelaufen')
                 run = False
-                '''    könnte zu fehlverhalten führen? 
-                if train == 'seeker':
-                    ge[x].fitness -= 1500
-                else:
-                    ge[x].fitness += 1500
-                '''
+
             if train == 'seeker':
                 ge[x].fitness -= 1
             else:
@@ -704,12 +698,7 @@ def run(configHider, configSeeker):
     global graphical_mode
     global train
     
-    configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configSeeker)
-    configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                                     configHider)
+    
     if load_checkpoints:
         print('\nrestoring Checkpoints...')
         try:   
@@ -720,6 +709,12 @@ def run(configHider, configSeeker):
             print('Checkpoints geladen')
         except:
             print('Checkpoints not found')
+            configS = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configSeeker)
+            configH = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configHider)            
             pS = neat.Population(configS)
             pH = neat.Population(configH)
     generation_number = pS.generation
@@ -734,21 +729,20 @@ def run(configHider, configSeeker):
 
 
     while True:
-        print('\nGeneration: ', generation_number)
+      
+        saver.start_generation(pS.generation)
 
         # train Seeker
-        saver.start_generation(pS.generation + 10)
         train = 'seeker'        
-        winnerSeeker = pS.run(main, 25)
+        winnerSeeker = pS.run(main, 1)
         wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
         
 
         # train Hider
-        train = 'hider'
-       
-        winnerHider = pH.run(main, 25)
+        train = 'hider'      
+        winnerHider = pH.run(main, 1)
         wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
-        generation_number = pS.generation
+
         saver.end_generation( pS.config, pS.population, pS.species, pH.config, pH.population, pH.species)
 
 
