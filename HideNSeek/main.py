@@ -14,11 +14,10 @@ from obstacle import Obstacle
 from checkpoint import Checkpointer
 
 
-
-train = 'seeker'  # wer zuerst trainiert wird
+training_Char = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-719', 'hider-neat-checkpoint-719']
+load_checkpoints = ['seeker-neat-checkpoint-2664', 'hider-neat-checkpoint-2664']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
@@ -27,8 +26,7 @@ debug_mode = False
 graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
-FPS = 100
-
+FPS = 200
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
@@ -233,15 +231,16 @@ def seethings(character):
     return pointslist, distlist
 
 def main_seeker(seekergenomes, seekerconfig):
-    wSeeker = main(seekergenomes, seekerconfig)
+    wSeeker = main(seekergenomes, seekerconfig, 'seeker')
     return wSeeker
 
 def main_hider(hidergenomes, hiderconfig):
-    wHider = main(hidergenomes, hiderconfig)
-    return wHider
+    winnerHider = main(hidergenomes, hiderconfig, 'hider')
+    return winnerHider
 
 
-def main(genomes, config):
+def main(genomes, config, trainedChar):
+    training_Char = trainedChar
  
     if graphical_mode:
         global SCREEN, FPSCLOCK
@@ -261,11 +260,11 @@ def main(genomes, config):
     hiders = []
     seekers = []
     
-    if train == 'seeker':
+    if training_Char == 'seeker':
         for i in range(1):
             hider = Hider()
 
-    if train == 'hider':
+    if training_Char == 'hider':
         for i in range(1):
             seeker = Seeker()
     
@@ -285,7 +284,7 @@ def main(genomes, config):
 
         genome.fitness = 20000
  
-        if train == 'seeker':
+        if training_Char == 'seeker':
             seeker = Seeker()
 
         else:
@@ -332,42 +331,45 @@ def main(genomes, config):
             seekerangle = -1
             for sublist in status:
                 hider = sublist[0]
-                # seeker sees
+                # seeker found hider
                 if sublist[1] == 'seeker_see':
                     seeker_los_color = green
                     hider_los_color = green
                     nextHiderY = hider.y
                     nextHiderX = hider.x
                     hiderangle = hider.angle
-                    if train == 'seeker':
+                    if training_Char == 'seeker':
                         genome.fitness += 20000
                     else:
                         genome.fitness -= 20000
                     run = False
                     print('hider gefunden')
 
-                # seeker sees semi
+                # seeker sees hider
                 elif sublist[1] == 'seeker_seesemi':
                     seeker_los_color = yellow                   
                     nextHiderY = hider.y
                     nextHiderX = hider.x
                     hiderangle = hider.angle
-                    if train == 'seeker':
-                        genome.fitness += 1
+                    if training_Char == 'seeker':
+                        genome.fitness += 30
                     else:
                         genome.fitness -= 1
-                # seeker does not see
+                # seeker does not see hider
                 else:
                     seeker_los_color = red
                     nextHiderY = -1
                     nextHiderX = -1
 
-                #hider see
+                #hider see seeker
                 if sublist[2] == 'hider_see':
                     hider_los_color = yellow
                     nextSeekerX = seeker.x
                     nextSeekerY = seeker.y
                     seekerangle = seeker.angle
+                    if training_Char == 'hider':
+                        genome.fitness += 1
+
                 #hider nosee
                 else:
                     hider_los_color = red
@@ -375,25 +377,36 @@ def main(genomes, config):
                     nextSeekerY = -1
 
             #lidarlike sicht
-            debugpoints = []
-            debugpoints, vision = seethings(seeker)
-            #print(vision)
+            debugpoints_seeker = []
+            debugpoints_seeker, seekervision = seethings(seeker)
+            debugpoints_hider, hidervision = seethings(hider)
+
+            #vollständige inputs
+            seekerinputs = [seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY]
+            for entry in seekervision:
+                seekerinputs.append(entry)
+
+            hiderinputs = [hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY]
+            for entry in seekervision:
+                hiderinputs.append(entry)
 
             # wenn seeker trainiert wird
-            if train == 'seeker':
+            if training_Char == 'seeker':
                 if wHider == None:
-                    outputHider = [0, 0]
+                    outputHider = [0, 0, 0]
                 else:
-                    outputHider = wHider.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
-                outputSeeker = net.activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
+                    outputHider = wHider.activate(hiderinputs)
+
+                outputSeeker = net.activate(seekerinputs)
 
             # wenn hider trainiert wird
             else:
                 if wSeeker == None:
-                    outputSeeker = [0, 0]
+                    outputSeeker = [0, 0, 0]
                 else:
-                    outputSeeker = wSeeker.activate((seeker.x, seeker.y, seeker.angle, hiderangle, nextHiderX, nextHiderY))
-                outputHider = net.activate((hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY))
+                    outputSeeker = wSeeker.activate(seekerinputs)
+
+                outputHider = net.activate(hiderinputs)
 
             # manuelle Steuerung
 
@@ -424,47 +437,74 @@ def main(genomes, config):
                     hider.angle += 360
 
                 # Movement durch KI
-
             else:
+                seekeraction = False
+                hideraction = False
                 # Seeker
                 if outputSeeker[0] > 0.5:
-                    seeker.angle = seeker.angle + seeker.rotVel
-                    genome.fitness += 0.1
+                    if training_Char == 'seeker':
+                        genome.fitness += 10
+                    seekeraction = True
+                    nSeekerx, nSeekery = move(seeker)
+                    if nSeekerx == seeker.x and nSeekery == seeker.y:
+                        if training_Char == 'seeker':
+                            genome.fitness -= 5
+                            #loopIter += 30
+                    seeker.x = nSeekerx
+                    seeker.y = nSeekery
+
                 if outputSeeker[1] > 0.5:
+                    seekeraction = True
+                    seeker.angle = seeker.angle + seeker.rotVel
+
+                if outputSeeker[2] > 0.5:
+                    seekeraction = True
                     seeker.angle = seeker.angle - seeker.rotVel
-                    genome.fitness += 0.1
+ 
+
                 if seeker.angle >= 360:
                     seeker.angle -= 360
                 if seeker.angle <= 0:
                     seeker.angle += 360
-                nSeekerx, nSeekery = move(seeker)
-                genome.fitness += 0.1
-                if nSeekerx == seeker.x and nSeekery == seeker.y:
-                    if train == 'seeker':
-                        genome.fitness -= 100
-                        loopIter += 30
-                seeker.x = nSeekerx
-                seeker.y = nSeekery
+                           
 
                 # Hider
-
                 if outputHider[0] > 0.5:
-                    hider.angle = hider.angle + hider.rotVel
+                    if training_Char == 'hider':
+                        genome.fitness += 10
+                    hideraction = True
+                    nHiderx, nHidery = move(hider)
+                    if nHiderx == hider.x and nHidery == hider.y:
+                        if training_Char == 'hider':
+                            genome.fitness -= 5
+                    hider.x = nHiderx
+                    hider.y = nHidery
+
                 if outputHider[1] > 0.5:
+                    hideraction = True
+                    hider.angle = hider.angle + hider.rotVel
+
+                if outputHider[2] > 0.5:
+                    hideraction = True
                     hider.angle = hider.angle - hider.rotVel
+
+
                 if hider.angle >= 360:
                     hider.angle -= 360
                 if hider.angle <= 0:
                     hider.angle += 360
 
-                nHiderx, nHidery = move(hider)
-
-                if nHiderx == hider.x and nHidery == hider.y:
-                    if train == 'hider':
-                        genome.fitness -= 100
-                        loopIter += 30
-                hider.x = nHiderx
-                hider.y = nHidery
+                #strafe fürs nichts tun
+                if training_Char == 'seeker':
+                    if seekeraction == False:
+                        genome.fitness -= 50
+                    else:
+                        genome.fitness += 0.5
+                else:
+                    if hideraction == False:
+                        genome.fitness -= 50
+                    else:
+                        genome.fitness += 0.5
 
             # GUI, falls gewollt
             if graphical_mode:
@@ -475,11 +515,11 @@ def main(genomes, config):
                 SCREEN.blit(surfaceScaled, (0, 0))
 
                 #text
-                if train == 'seeker':
+                if training_Char == 'seeker':
                     text_color = red
                 else:
                     text_color = green
-                text = '{0}{1}'.format('trainiert: ', train)
+                text = '{0}{1}'.format('trainiert: ', training_Char)
                 textsurface = myfont.render((text), False, text_color)
                 SCREEN.blit(textsurface,(0,0))
 
@@ -503,9 +543,12 @@ def main(genomes, config):
                 pygame.draw.line(SCREEN, hider_los_color, [hider.x, hider.y], los_middle, 2)
 
                 #vision
-                if debugpoints:
-                    for point in debugpoints:
+                if debugpoints_seeker:
+                    for point in debugpoints_seeker:
                         pygame.draw.line(SCREEN, blue, [seeker.x, seeker.y], [point[0], point[1]])
+                if debugpoints_hider:
+                    for point in debugpoints_hider:
+                        pygame.draw.line(SCREEN, blue, [hider.x, hider.y], [point[0], point[1]])
 
                 # obstacles
                 for obstacle in obstacles:
@@ -517,13 +560,17 @@ def main(genomes, config):
             loopIter += 1
             if loopIter >= 5000:
                 print('Zeit abgelaufen')
+                if training_Char == 'seeker':
+                    genome.fitness -= 20000
+                else:
+                    genome.fitness += 20000
                 run = False
 
-            if train == 'seeker':
-                genome.fitness -= 1
+            if training_Char == 'seeker':
+                genome.fitness -= 5
             else:
-                genome.fitness += 1
-            # print(ge[x].fitness)
+                genome.fitness += 0.5
+            #print(genome.fitness)
 
 '''
 def visResult():
@@ -685,7 +732,7 @@ def train(configFileSeeker, configFileHider):
     global wSeeker
     global wHider
     global graphical_mode
-    global train
+    global training_Char
     
     
     if load_checkpoints:
@@ -724,15 +771,17 @@ def train(configFileSeeker, configFileHider):
         saver.start_generation(pS.generation)
 
         # train Seeker
-        train = 'seeker'        
-        winnerSeeker = pS.run(main_seeker, 1)
-        wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
-        
+        if training_Char == 'seeker':              
+            winnerSeeker = pS.run(main_seeker, 1)
+            wSeeker = neat.nn.FeedForwardNetwork.create(winnerSeeker, configS)
+            training_Char = 'hider'    
+            
 
         # train Hider
-        train = 'hider'      
-        winnerHider = pH.run(main_hider, 1)
-        wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+        else:             
+            winnerHider = pH.run(main_hider, 1)
+            wHider = neat.nn.FeedForwardNetwork.create(winnerHider, configH)
+            training_Char = 'seeker'   
 
         saver.end_generation( pS.config, pS.population, pS.species, pH.config, pH.population, pH.species)
 
