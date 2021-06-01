@@ -23,7 +23,7 @@ load_checkpoints = ['seeker-neat-checkpoint-2987', 'hider-neat-checkpoint-2987']
 debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = False
+graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
 FPS = 200
@@ -260,6 +260,7 @@ def main(genomes, config, trainedChar):
 
         surface = pygame.Surface((SCREENWIDTH, SCREENHEIGHT))
         surface.blit(IMAGES['background'], (0, 0))
+        cooldown = 150
         
 
     hiders = []
@@ -514,6 +515,15 @@ def main(genomes, config, trainedChar):
 
             # GUI, falls gewollt
             if graphical_mode:
+
+                #Genom skippen
+                keys = pygame.key.get_pressed()
+                cooldown += 1
+                if keys[pygame.K_SPACE] and cooldown >= 100:
+                    print('Genom übersprungen. Fitness vor Abzug:',genome.fitness)
+                    genome.fitness -= 20000                   
+                    run = False
+                    cooldown = 0
 
                 # background
                 surfaceScaled = pygame.transform.scale(surface,
