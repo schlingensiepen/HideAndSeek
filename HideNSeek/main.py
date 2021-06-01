@@ -17,16 +17,21 @@ from checkpoint import Checkpointer
 training_Char = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-2664', 'hider-neat-checkpoint-2664']
+load_checkpoints = ['seeker-neat-checkpoint-2987', 'hider-neat-checkpoint-2987']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = True
+graphical_mode = False
 
 #geschwindigkeit im graphical mode cappen
 FPS = 200
+
+#zum updaten der config-file
+newconfig = False
+
+
 SCREENWIDTH = 800
 SCREENHEIGHT = 800
 SCALING = 1
@@ -344,6 +349,7 @@ def main(genomes, config, trainedChar):
                         genome.fitness -= 20000
                     run = False
                     print('hider gefunden')
+                    print('fitness: ', genome.fitness)
 
                 # seeker sees hider
                 elif sublist[1] == 'seeker_seesemi':
@@ -352,9 +358,9 @@ def main(genomes, config, trainedChar):
                     nextHiderX = hider.x
                     hiderangle = hider.angle
                     if training_Char == 'seeker':
-                        genome.fitness += 30
+                        genome.fitness += 5
                     else:
-                        genome.fitness -= 1
+                        genome.fitness -= 5
                 # seeker does not see hider
                 else:
                     seeker_los_color = red
@@ -443,12 +449,12 @@ def main(genomes, config, trainedChar):
                 # Seeker
                 if outputSeeker[0] > 0.5:
                     if training_Char == 'seeker':
-                        genome.fitness += 10
+                        genome.fitness += 3
                     seekeraction = True
                     nSeekerx, nSeekery = move(seeker)
                     if nSeekerx == seeker.x and nSeekery == seeker.y:
                         if training_Char == 'seeker':
-                            genome.fitness -= 5
+                            genome.fitness -= 3
                             #loopIter += 30
                     seeker.x = nSeekerx
                     seeker.y = nSeekery
@@ -471,12 +477,12 @@ def main(genomes, config, trainedChar):
                 # Hider
                 if outputHider[0] > 0.5:
                     if training_Char == 'hider':
-                        genome.fitness += 10
+                        genome.fitness += 3
                     hideraction = True
                     nHiderx, nHidery = move(hider)
                     if nHiderx == hider.x and nHidery == hider.y:
                         if training_Char == 'hider':
-                            genome.fitness -= 5
+                            genome.fitness -= 3
                     hider.x = nHiderx
                     hider.y = nHidery
 
@@ -497,12 +503,12 @@ def main(genomes, config, trainedChar):
                 #strafe fürs nichts tun
                 if training_Char == 'seeker':
                     if seekeraction == False:
-                        genome.fitness -= 50
+                        genome.fitness -= 20
                     else:
                         genome.fitness += 0.5
                 else:
                     if hideraction == False:
-                        genome.fitness -= 50
+                        genome.fitness -= 20
                     else:
                         genome.fitness += 0.5
 
@@ -560,6 +566,7 @@ def main(genomes, config, trainedChar):
             loopIter += 1
             if loopIter >= 5000:
                 print('Zeit abgelaufen')
+                print('fitness: ', genome.fitness)
                 if training_Char == 'seeker':
                     genome.fitness -= 20000
                 else:
@@ -742,8 +749,19 @@ def train(configFileSeeker, configFileHider):
             hidercheckpoint = saver.restore_checkpoint(load_checkpoints[1])
             pS = seekercheckpoint
             pH = hidercheckpoint
-            configS = pS.config
-            configH = pH.config
+            if newconfig == True:
+                configS = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configFileSeeker)
+                configH = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                     configFileHider)
+                pS.config = configS
+                pH.config = configH
+
+            else:    
+                configS = pS.config
+                configH = pH.config
             print('Checkpoints geladen')
         except:
             print('Checkpoints not found')
