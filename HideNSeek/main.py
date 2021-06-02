@@ -17,7 +17,7 @@ from checkpoint import Checkpointer
 training_Char = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-7008', 'hider-neat-checkpoint-7008']
+load_checkpoints = ['seeker-neat-checkpoint-7567', 'hider-neat-checkpoint-7567']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
@@ -28,7 +28,7 @@ graphical_mode = True
 #geschwindigkeit im graphical mode cappen
 FPS = 200
 
-#zum updaten der config-file
+#zum updaten der config-file einer gespeicherten Generation(führt leider zu noch nicht gefixtedm Fehler)
 newconfig = False
 
 
@@ -407,7 +407,7 @@ def main(genomes, config, trainedChar):
             hiderinputs = [hider.x, hider.y, hider.angle, seekerangle, nextSeekerX, nextSeekerY]
             for entry in seekervision:
                 hiderinputs.append(entry)
-
+            
             # wenn seeker trainiert wird
             if training_Char == 'seeker':
                 if wHider == None:
@@ -538,12 +538,12 @@ def main(genomes, config, trainedChar):
 
                 elif keys[pygame.K_n] and cooldown >= 150:
                     FPS -= 50
-                    print(FPS)
+                    print('FPS:', FPS)
                     cooldown = 0
 
                 elif keys[pygame.K_m] and cooldown >= 150:
                     FPS += 50
-                    print(FPS)
+                    print('FPS:',FPS)
                     cooldown = 0
                    
 
