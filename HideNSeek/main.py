@@ -17,10 +17,10 @@ from checkpoint import Checkpointer
 training_Char = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-2987', 'hider-neat-checkpoint-2987']
+load_checkpoints = ['seeker-neat-checkpoint-4848', 'hider-neat-checkpoint-4848']
 
 # spieler können selbst gesteuert werden
-debug_mode = False
+debug_mode = True
 
 # es wird angzeigt, was passiert
 graphical_mode = True
@@ -245,6 +245,7 @@ def main_hider(hidergenomes, hiderconfig):
 
 
 def main(genomes, config, trainedChar):
+    global FPS
     training_Char = trainedChar
  
     if graphical_mode:
@@ -260,7 +261,7 @@ def main(genomes, config, trainedChar):
 
         surface = pygame.Surface((SCREENWIDTH, SCREENHEIGHT))
         surface.blit(IMAGES['background'], (0, 0))
-        cooldown = 150
+        
         
 
     hiders = []
@@ -297,6 +298,7 @@ def main(genomes, config, trainedChar):
             hider = Hider()
 
         loopIter = 0
+        cooldown = 0
         run = True
 
         #Spieler sollen nicht in Hindernissen spawnen (funktion fraglich)
@@ -519,11 +521,22 @@ def main(genomes, config, trainedChar):
                 #Genom skippen
                 keys = pygame.key.get_pressed()
                 cooldown += 1
-                if keys[pygame.K_SPACE] and cooldown >= 100:
+                if keys[pygame.K_SPACE] and cooldown >= 150:
                     print('Genom übersprungen. Fitness vor Abzug:',genome.fitness)
-                    genome.fitness -= 20000                   
+                    if trainedChar == 'seeker':
+                        genome.fitness -= (15000 - 3*loopIter)                
                     run = False
+
+                elif keys[pygame.K_n] and cooldown >= 150:
+                    FPS -= 50
+                    print(FPS)
                     cooldown = 0
+                    
+                elif keys[pygame.K_m] and cooldown >= 150:
+                    FPS += 50
+                    print(FPS)
+                    cooldown = 0
+                   
 
                 # background
                 surfaceScaled = pygame.transform.scale(surface,
