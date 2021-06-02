@@ -20,10 +20,10 @@ training_Char = 'seeker'  # wer zuerst trainiert wird
 load_checkpoints = ['seeker-neat-checkpoint-4848', 'hider-neat-checkpoint-4848']
 
 # spieler können selbst gesteuert werden
-debug_mode = True
+debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = True
+graphical_mode = False
 
 #geschwindigkeit im graphical mode cappen
 FPS = 200
@@ -236,10 +236,12 @@ def seethings(character):
     return pointslist, distlist
 
 def main_seeker(seekergenomes, seekerconfig):
+    print('trainiert: seeker')
     wSeeker = main(seekergenomes, seekerconfig, 'seeker')
     return wSeeker
 
 def main_hider(hidergenomes, hiderconfig):
+    print('trainiert: hider')
     winnerHider = main(hidergenomes, hiderconfig, 'hider')
     return winnerHider
 
@@ -457,7 +459,7 @@ def main(genomes, config, trainedChar):
                     nSeekerx, nSeekery = move(seeker)
                     if nSeekerx == seeker.x and nSeekery == seeker.y:
                         if training_Char == 'seeker':
-                            genome.fitness -= 3
+                            genome.fitness -= 2.5
                             #loopIter += 30
                     seeker.x = nSeekerx
                     seeker.y = nSeekery
@@ -485,7 +487,7 @@ def main(genomes, config, trainedChar):
                     nHiderx, nHidery = move(hider)
                     if nHiderx == hider.x and nHidery == hider.y:
                         if training_Char == 'hider':
-                            genome.fitness -= 3
+                            genome.fitness -= 2
                     hider.x = nHiderx
                     hider.y = nHidery
 
@@ -531,7 +533,7 @@ def main(genomes, config, trainedChar):
                     FPS -= 50
                     print(FPS)
                     cooldown = 0
-                    
+
                 elif keys[pygame.K_m] and cooldown >= 150:
                     FPS += 50
                     print(FPS)
@@ -593,7 +595,7 @@ def main(genomes, config, trainedChar):
                 if training_Char == 'seeker':
                     genome.fitness -= 20000
                 else:
-                    genome.fitness += 20000
+                    genome.fitness += 10000
                 run = False
 
             if training_Char == 'seeker':
