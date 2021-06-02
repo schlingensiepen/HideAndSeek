@@ -17,13 +17,13 @@ from checkpoint import Checkpointer
 training_Char = 'seeker'  # wer zuerst trainiert wird
 
 # Namen der beiden zu landeneden Checkpoints (erst seeker dann hider) hier rein:
-load_checkpoints = ['seeker-neat-checkpoint-4848', 'hider-neat-checkpoint-4848']
+load_checkpoints = ['seeker-neat-checkpoint-7008', 'hider-neat-checkpoint-7008']
 
 # spieler können selbst gesteuert werden
 debug_mode = False
 
 # es wird angzeigt, was passiert
-graphical_mode = False
+graphical_mode = True
 
 #geschwindigkeit im graphical mode cappen
 FPS = 200
@@ -291,7 +291,10 @@ def main(genomes, config, trainedChar):
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-        genome.fitness = 20000
+        if trainedChar == 'seeker':
+            genome.fitness = 20000
+        else:
+            genome.fitness = 10000
  
         if training_Char == 'seeker':
             seeker = Seeker()
@@ -317,6 +320,10 @@ def main(genomes, config, trainedChar):
             seeker.x = np.random.randint(seeker.radius, SCREENWIDTH - seeker.radius)
             seeker.y = np.random.randint(seeker.radius, SCREENHEIGHT - seeker.radius)
             seeker_in_obstacle = obstacle_collision(seeker, seeker.x, seeker.y)
+            #seeker soll nicht direkt auf hider spawnen
+            distance = math.sqrt((hider.x - seeker.x)**2 + (hider.y - seeker.y)**2)
+            if distance < 300:
+                seeker_in_obstacle = True
         seeker.angle = np.random.randint(0, 360)
         
 
